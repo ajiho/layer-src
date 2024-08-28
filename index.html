@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <link rel="stylesheet" href="./layer.css" />
+  </head>
+  <body>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="./layer.js"></script>
+    <script>
+      layer.ready(function () {
+        layer.open({
+          type: 2,
+          title: "欢迎页",
+          maxmin: true,
+          area: ["800px", "500px"],
+          content: "welcome.html",
+          end: function () {
+            layer.tips("Hi", "#about", { tips: 1 });
+          },
+        });
+      });
+    </script>
+  </body>
+</html>
