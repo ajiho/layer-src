@@ -4,7 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
-    <link rel="stylesheet" href="./layer.css" />
+    <!-- 引入该地址关闭按钮才有效果 -->
+    <!-- <link href="//unpkg.com/layui@2.9.16/dist/css/layui.css" rel="stylesheet"> -->
   </head>
   <body>
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
@@ -12,14 +13,15 @@
     <script>
       layer.ready(function () {
         layer.open({
-          type: 2,
-          title: "欢迎页",
-          maxmin: true,
-          area: ["800px", "500px"],
-          content: "welcome.html",
-          end: function () {
-            layer.tips("Hi", "#about", { tips: 1 });
-          },
+          type: 1, // page 层类型
+          area: ["500px", "300px"],
+          title: "Hello layer",
+          shade: 0.6, // 遮罩透明度
+          shadeClose: true, // 点击遮罩区域，关闭弹层
+          maxmin: true, // 允许全屏最小化
+          anim: 0, // 0-6 的动画形式，-1 不开启
+          content:
+            '<div style="padding: 32px;">一个普通的页面层，传入了自定义的 HTML</div>',
         });
       });
     </script>
