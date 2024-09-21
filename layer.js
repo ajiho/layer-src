@@ -2,7 +2,6 @@
  * layer
  * 通用 Web 弹出层组件
  */
-//@ts-ignore
 !(function (window, undefined) {
   "use strict";
 
