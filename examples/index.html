@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>layer的demo</title>
+    <link rel="stylesheet" href="../dist/css/layer.css" />
+  </head>
+  <body>
+    <h3>弹层类型</h3>
+    <hr />
+    <div class="type">
+      <button data-type="open">open方法</button>
+      <button data-type="alert">Alert</button>
+      <button data-type="confirm">Confirm</button>
+      <button data-type="msg">Msg</button>
+      <button data-type="page">Page</button>
+      <button data-type="iframe">iframe</button>
+      <button data-type="load">Load</button>
+      <button data-type="tips">Tips</button>
+      <button data-type="prompt">Prompt</button>
+      <button data-type="photots">photots</button>
+    </div>
+
+    <h3>信息框</h3>
+    <p>
+      信息框即 dialog 类型层，对应默认的 type:
+      0，该类型的弹层同时只能存在一个。更多说明详见：#type
+    </p>
+    <hr />
+    <div class="dialog">
+      <button data-type="icon">对话框带图标</button>
+      <button data-type="confirm">询问框</button>
+      <button data-type="msg-dark">深色提示框</button>
+      <button data-type="msg-light">浅色提示框</button>
+      <button data-type="alert-btn">自定义按钮</button>
+      <button data-type="count-down">关闭倒计时</button>
+    </div>
+
+    <h3>页面层</h3>
+    <hr />
+    <div id="ID-test-layer-wrapper" style="display: none;">
+      <div style="padding:16px;">
+        弹出已经存在于页面中的一段元素<br>
+        通常是放置在 <body> 根节点下
+      </div>
+    </div>
+    <div class="page">
+      <button data-type="page">普通页面层</button>
+      <button data-type="page-wrap">捕获层</button>
+      <button data-type="page-title">剔除默认标题栏</button>
+      <button data-type="page-move">绑定弹层的拖拽元素</button>
+      <button data-type="page-custom">弹出任意自定义内容</button>
+    </div>
+
+    <h3>iframe层</h3>
+    <hr />
+    <div class="iframe">
+      <button data-type="iframe-handle">iframe的父子操作</button>
+      <button data-type="iframe-video">弹出多媒体</button>
+      <button data-type="iframe-overflow">禁止iframe滚动条</button>
+      <button data-type="iframe-curl">弹出任意URL页面</button>
+    </div>
+
+    <h3>加载层</h3>
+    <hr />
+    <div class="load">
+      <button data-type="load-1">风格1</button>
+      <button data-type="load-2">风格2</button>
+      <button data-type="load-3">风格3</button>
+      <button data-type="load-4">风格4</button>
+    </div>
+
+    <h3>Tips 层</h3>
+    <hr />
+    <div class="tips">
+      <button data-type="tips-top">显示在上</button>
+      <button data-type="tips-right">显示在右</button>
+      <button data-type="tips-bottom">显示在下</button>
+      <button data-type="tips-left">显示在左</button>
+      <button data-type="tips-color">自定义背景色</button>
+      <button data-type="tips-more">允许多个tips</button>
+    </div>
+
+    <h3>其它层</h3>
+    <hr />
+    <div class="other">
+      <button data-type="tab">tab 层</button>
+      <button data-type="prompt-0">prompt - 单行文本框层</button>
+      <button data-type="prompt-1">prompt - 密令输入框层</button>
+      <button data-type="prompt-2">prompt - 多行文本框层</button>
+      <button data-type="photos-one">photos - 单张图片层</button>
+      <button data-type="photos">photos - 多张相册层</button>
+    </div>
+
+    <h3>弹出位置</h3>
+    <hr />
+    <div class="position">
+      <button data-type="position" data-offset="t">上</button>
+      <button data-type="position" data-offset="r">右</button>
+      <button data-type="position" data-offset="b">下</button>
+      <button data-type="position" data-offset="l">左</button>
+      <button data-type="position" data-offset="rt">右上</button>
+      <button data-type="position" data-offset="rb">右下</button>
+      <button data-type="position" data-offset="lb">左下</button>
+      <button data-type="position" data-offset="lt">左上</button>
+      <button data-type="position" data-offset="auto">正中</button>
+      <button data-type="position" data-offset="">任意</button>
+    </div>
+
+    <h3>抽屉效果</h3>
+    <hr />
+    <div class="drawer">
+      <button data-type="drawer-t">从上往下</button>
+      <button data-type="drawer-r">从右往左</button>
+      <button data-type="drawer-b">从下往上</button>
+      <button data-type="drawer-l">从左往右</button>
+    </div>
+
+    <h3>更多其它演示</h3>
+    <hr />
+    <div class="more">
+      <button data-type="more-max">最大化弹出</button>
+      <button data-type="more-scrollbar">弹出时屏蔽浏览器滚动条</button>
+      <button data-type="more-lockscreen">页面锁屏</button>
+      <button data-type="more-shade">自定义遮罩颜色和透明度</button>
+      <button data-type="more-stack"> 多窗口模式 + 层叠置顶 + Esc 关闭</button>
+    </div>
+
+    <h3>异步按钮</h3>
+    <hr />
+    <div class="async">
+      <button data-type="async-alert">alert</button>
+      <button data-type="async-confirm">confirm</button>
+      <button data-type="async-msg">msg</button>
+      <button data-type="async-open">open</button>
+      <button data-type="async-prompt"> prompt(不支持)</button>
+    </div>
+
+    <h3>主题风格</h3>
+    <hr />
+    <div class="theme">
+      <button data-type="theme-alert">墨绿与深蓝主题</button>
+      <button data-type="theme-win10">Windows 10 风格信息框</button>
+      <button data-type="theme-win10-page">Win10 风格页面层 </button>
+      <button data-type="theme-custom">自定义任意主题</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="../dist/js/layer.js"></script>
+    <script src="demo-type.js"></script>
+    <script src="demo-dialog.js"></script>
+    <script src="demo-page.js"></script>
+    <script src="demo-iframe.js"></script>
+    <script src="demo-load.js"></script>
+    <script src="demo-tips.js"></script>
+    <script src="demo-other.js"></script>
+    <script src="demo-position.js"></script>
+    <script src="demo-drawer.js"></script>
+    <script src="demo-more.js"></script>
+    <script src="demo-async.js"></script>
+    <script src="demo-theme.js"></script>
+  </body>
+</html>

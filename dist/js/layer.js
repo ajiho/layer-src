@@ -4,8 +4,9 @@
  */
 !(function (window, undefined) {
   "use strict";
-
+  //判断全局是否挂载了layui
   var isLayui = window.layui && layui.define;
+  
   var $;
   var win;
   var ready = {
@@ -52,64 +53,12 @@
       ](name);
     },
 
-    // 载入 CSS 依赖
-    link: function (href, fn, cssname) {
-      // 未设置路径，则不主动加载 css
-      if (!layer.path) return;
-
-      var head = document.getElementsByTagName("head")[0];
-      var link = document.createElement("link");
-
-      if (typeof fn === "string") cssname = fn;
-
-      var app = (cssname || href).replace(/\.|\//g, "");
-      var id = "layuicss-" + app;
-      var STATUS_NAME = "creating";
-      var timeout = 0;
-
-      link.rel = "stylesheet";
-      link.href = layer.path + href;
-      link.id = id;
-
-      if (!document.getElementById(id)) {
-        head.appendChild(link);
-      }
-
-      if (typeof fn !== "function") return;
-
-      // 轮询 css 是否加载完毕
-      (function poll(status) {
-        var delay = 100;
-        var getLinkElem = document.getElementById(id); // 获取动态插入的 link 元素
-
-        // 如果轮询超过指定秒数，则视为请求文件失败或 css 文件不符合规范
-        if (++timeout > (10 * 1000) / delay) {
-          return window.console && console.error(app + ".css: Invalid");
-        }
-
-        // css 加载就绪
-        if (parseInt(ready.getStyle(getLinkElem, "width")) === 1989) {
-          // 如果参数来自于初始轮询（即未加载就绪时的），则移除 link 标签状态
-          if (status === STATUS_NAME) getLinkElem.removeAttribute("lay-status");
-          // 如果 link 标签的状态仍为「创建中」，则继续进入轮询，直到状态改变，则执行回调
-          getLinkElem.getAttribute("lay-status") === STATUS_NAME
-            ? setTimeout(poll, delay)
-            : fn();
-        } else {
-          getLinkElem.setAttribute("lay-status", STATUS_NAME);
-          setTimeout(function () {
-            poll(STATUS_NAME);
-          }, delay);
-        }
-
-        // parseInt(ready.getStyle(document.getElementById(id), 'width')) === 1989 ? fn() : setTimeout(poll, 1000);
-      })();
-    },
   };
 
   // 默认内置方法。
   var layer = {
     v: "3.7.0",
+    //判断ie
     ie: (function () {
       // ie 版本
       var agent = navigator.userAgent.toLowerCase();
@@ -117,39 +66,40 @@
         ? (agent.match(/msie\s(\d+)/) || [])[1] || "11" // 由于 ie11 并没有 msie 的标识
         : false;
     })(),
+
+    // 索引层
     index: window.layer && window.layer.v ? 100000 : 0,
+    // 路径
     path: ready.getPath,
+    // 设置全局默认配置
     config: function (options, fn) {
       options = options || {};
+
+      // 把传递进来的参数和默认配置ready.config里面的参数合并后赋值给ready.config和layer.cache
       layer.cache = ready.config = $.extend({}, ready.config, options);
+      // console.log(layer.cache,ready.config);
+
+      // 从默认参数ready.config里取path如果没有就取layer对象上的path属性赋值给layer.path
       layer.path = ready.config.path || layer.path;
+
+      // console.log(layer.path, ready.config.path);
+
+
+      // console.log(options.extend);
+      
+
       typeof options.extend === "string" && (options.extend = [options.extend]);
 
-      // 如果设置了路径，则加载样式
-      if (ready.config.path) layer.ready();
+      // 如果设置了路径，则加载样式,这里不需要这样
+      // if (ready.config.path) layer.ready();
 
-      if (!options.extend) return this;
+
+      if (!options.extend) return this; //如果选项不存在extend属性，就直接return
 
       // 加载 css
-      isLayui
-        ? layui.addcss("modules/layer/" + options.extend)
-        : ready.link("css/" + options.extend);
-
-      return this;
-    },
-
-    // 主体 CSS 等待事件
-    ready: function (callback) {
-      var cssname = "layer";
-      var ver = "";
-      var path =
-        (isLayui ? "modules/" : "css/") + "layer.css?v=" + layer.v + ver;
-
-      isLayui
-        ? layui["layui.all"]
-          ? typeof callback === "function" && callback()
-          : layui.addcss(path, callback, cssname)
-        : ready.link(path, callback, cssname);
+      // isLayui
+      //   ? layui.addcss("modules/layer/" + options.extend)
+      //   : ready.link("css/" + options.extend);
 
       return this;
     },
@@ -158,6 +108,9 @@
     alert: function (content, options, yes) {
       var type = typeof options === "function";
       if (type) yes = options;
+
+
+
       return layer.open(
         $.extend(
           {
@@ -266,6 +219,10 @@
   };
 
   var Class = function (setings) {
+
+    console.log(setings);
+    
+
     var that = this,
       creat = function () {
         that.creat();
@@ -544,7 +501,14 @@
     var conType = typeof content === "object";
     var body = $("body");
 
+    console.log('走到creat方法');
+    
+
     var setAnim = function (layero) {
+
+      console.log('qq');
+      
+
       // anim 兼容旧版 shift
       if (config.shift) {
         config.anim = config.shift;
@@ -579,6 +543,7 @@
         } else if (options.hideOnClose) {
           elemShade.show();
           layero.show();
+          console.log('qqxx');
           setAnim(layero);
           setTimeout(function () {
             elemShade.css({ opacity: elemShade.data(SHADE_KEY) });
@@ -688,23 +653,25 @@
       layer.ie == 6 &&
       that.layero.find("iframe").attr("src", content[0]);
 
-    // 坐标自适应浏览器窗口尺寸
-    config.type == 4
-      ? that.tips()
-      : (function () {
-          that.offset();
-          // 首次弹出时，若 css 尚未加载，则等待 css 加载完毕后，重新设定尺寸
-          parseInt(
-            ready.getStyle(document.getElementById(doms.MOVE), "z-index")
-          ) ||
-            (function () {
-              that.layero.css("visibility", "hidden");
-              layer.ready(function () {
-                that.offset();
-                that.layero.css("visibility", "visible");
-              });
-            })();
-        })();
+    console.log(config.type);
+
+    if (config.type == 4) {
+      //tips层，调用tips的方法
+      that.tips();
+    } else {
+      // 坐标自适应浏览器窗口尺寸
+      that.offset();
+      const zIndex = parseInt(
+        ready.getStyle(document.getElementById(doms.MOVE), "z-index")
+      );
+
+      if (!zIndex) {
+        that.layero
+          .css("visibility", "hidden")
+          .offset()
+          .css("visibility", "visible");
+      }
+    }
 
     // 若是固定定位，则跟随 resize 事件来自适应坐标
     if (config.fixed) {
@@ -722,6 +689,8 @@
         layer.close(that.index);
       }, config.time);
     that.move().callback();
+    console.log('fff');
+    
     setAnim(that.layero);
 
     // 记录配置信息
@@ -2324,8 +2293,10 @@
         return layer;
       })
     : (function () {
+        console.log("zheli");
+
         // 普通 script 标签引入
-        layer.ready();
+        // layer.ready();
         ready.run(window.jQuery);
       })();
 })(window);
