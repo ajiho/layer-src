@@ -1,18 +1,18 @@
 
 $(function () {
 
-  // console.log(layer);
-  layer.path = 'adsad'
+  // // console.log(layer);
+  // layer.path = 'adsad'
   
 
-  //全局设置layer的配置项
-  layer.config({
-    extend:'aa',
-    path:'xxx',
-    title: "全局默认标题",
-    skin: "", // 设置默认主题
-    // … 其他任意基础属性
-  });
+  // //全局设置layer的配置项
+  // layer.config({
+  //   extend:'aa',
+  //   path:'xxx',
+  //   title: "全局默认标题",
+  //   skin: "", // 设置默认主题
+  //   // … 其他任意基础属性
+  // });
 
 
   $(".type").on("click", "button", function () {
