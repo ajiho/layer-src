@@ -8,11 +8,11 @@
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require('jquery')) :
   typeof define === 'function' && define.amd ? define(['jquery'], factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.layer = factory(global.jQuery));
-})(this, (function ($$1) { 'use strict';
+})(this, (function ($) { 'use strict';
 
   // 缓存常用字符
   const doms = ["layui-layer", ".layui-layer-title", ".layui-layer-main", ".layui-layer-dialog", "layui-layer-iframe", "layui-layer-content", "layui-layer-btn", "layui-layer-close"];
-  doms.html = $$1("html");
+  doms.html = $("html");
 
   // 动画类
   doms.anim = {
@@ -28,7 +28,9 @@
     slideUp: "layer-anim-slide-up",
     slideRight: "layer-anim-slide-right"
   };
-  const win = $$1(window);
+  doms.SHADE = "layui-layer-shade";
+  doms.MOVE = "layui-layer-move";
+  const win = $(window);
 
   // 一些常量
   const CONSTANTS = {
@@ -36,8 +38,8 @@
     RECORD_HEIGHT_KEY: "LAYUI_LAYER_CONTENT_RECORD_HEIGHT"
   };
 
-  // 助手类+一些成员变量设置
-  const ready = {
+  // 状态
+  const state = {
     config: {
       removeFocus: true
     },
@@ -51,6 +53,36 @@
     btn: ["确定", "取消"],
     // 五种原始层模式
     type: ["dialog", "page", "iframe", "loading", "tips"]
+  };
+
+  // 默认参数
+  const DEFAULTS = {
+    type: 0,
+    shade: 0.3,
+    fixed: true,
+    move: doms[1],
+    title: "信息",
+    offset: "auto",
+    area: "auto",
+    closeBtn: 1,
+    icon: -1,
+    time: 0,
+    // 0 表示不自动关闭
+    zIndex: 19891014,
+    maxWidth: 360,
+    anim: 0,
+    isOutAnim: true,
+    // 退出动画
+    minStack: true,
+    // 最小化堆叠
+    moveType: 1,
+    resize: true,
+    scrollbar: true,
+    // 是否允许浏览器滚动条
+    tips: 2
+  };
+  const html = {
+    iframe: `<iframe scrolling="%s" allowtransparency="true" id="%s" name="%s" onload="this.className='';" class="layui-layer-load" frameborder="0" src="%s"></iframe>`
   };
 
   function detectIE() {
@@ -79,8 +111,8 @@
       if (!layero[0]) return window.console && console.error("index error");
       let type = layero.attr("type");
       let contentElem = layero.find(".layui-layer-content");
-      let contentRecordHeightElem = type === ready.type[2] ? contentElem.children("iframe") : contentElem;
-      let area = [layero[0].style.width || ready.getStyle(layero[0], "width"), layero[0].style.height || ready.getStyle(layero[0], "height"), layero.position().top, layero.position().left + parseFloat(layero.css("margin-left"))];
+      let contentRecordHeightElem = type === state.type[2] ? contentElem.children("iframe") : contentElem;
+      let area = [layero[0].style.width || state.getStyle(layero[0], "width"), layero[0].style.height || state.getStyle(layero[0], "height"), layero.position().top, layero.position().left + parseFloat(layero.css("margin-left"))];
       layero.find(".layui-layer-max").addClass("layui-layer-maxmin");
       layero.attr({
         area: area
@@ -110,9 +142,228 @@
     },
     skin: function (type, cache) {
       return cache.skin ? " " + cache.skin + " " + cache.skin + "-" + type : "";
+    },
+    sprintf(_str, ...args) {
+      let flag = true;
+      let i = 0;
+      const str = _str.replace(/%s/g, () => {
+        const arg = args[i++];
+        if (typeof arg === "undefined") {
+          flag = false;
+          return "";
+        }
+        return arg;
+      });
+      return flag ? str : "";
     }
   };
 
+  // 关闭弹出层
+  const close = (index, callback) => {
+    let layero = function () {
+      let closest = $("." + doms[0]).children("#" + index).closest("." + doms[0]);
+      return closest[0] ? (index = closest.attr("times"), closest) : $("#" + doms[0] + index);
+    }();
+    let type = layero.attr("type");
+    let options = layero.data("config") || {};
+    let hideOnClose = options.id && options.hideOnClose; // 是否关闭时移除弹层容器
+
+    if (!layero[0]) return;
+    let executor = () => {
+      // 关闭动画
+      let closeAnim = {
+        slideDown: "layer-anim-slide-down-out",
+        slideLeft: "layer-anim-slide-left-out",
+        slideUp: "layer-anim-slide-up-out",
+        slideRight: "layer-anim-slide-right-out"
+      }[options.anim] || "layer-anim-close";
+
+      // 移除主容器
+      let remove = () => {
+        let WRAP = "layui-layer-wrap";
+
+        // 是否关闭时隐藏弹层容器
+        if (hideOnClose) {
+          layero.removeClass("layer-anim " + closeAnim);
+          return layero.hide();
+        }
+
+        // 是否为页面捕获层
+        if (type === state.type[1] && layero.attr("conType") === "object") {
+          layero.children(":not(." + doms[5] + ")").remove();
+          let wrap = layero.find("." + WRAP);
+          for (let i = 0; i < 2; i++) {
+            wrap.unwrap();
+          }
+          wrap.css("display", wrap.data("display")).removeClass(WRAP);
+        } else {
+          // 低版本 IE 回收 iframe
+          if (type === state.type[2]) {
+            try {
+              let iframe = $("#" + doms[4] + index)[0];
+              iframe.contentWindow.document.write("");
+              iframe.contentWindow.close();
+              layero.find("." + doms[5])[0].removeChild(iframe);
+            } catch (e) {}
+          }
+          layero[0].innerHTML = "";
+          layero.remove();
+        }
+        typeof state.end[index] === "function" && state.end[index]();
+        delete state.end[index];
+        typeof callback === "function" && callback();
+
+        // 移除 reisze 事件
+        if (state.events.resize[index]) {
+          win.off("resize", state.events.resize[index]);
+          delete state.events.resize[index];
+        }
+      };
+      // 移除遮罩
+      let shadeo = $("#" + doms.SHADE + index);
+      if (!options.isOutAnim) {
+        shadeo[hideOnClose ? "hide" : "remove"]();
+      } else {
+        shadeo.css({
+          opacity: 0
+        });
+        setTimeout(function () {
+          shadeo[hideOnClose ? "hide" : "remove"]();
+        }, 350);
+      }
+
+      // 是否允许关闭动画
+      if (options.isOutAnim) {
+        layero.addClass("layer-anim " + closeAnim);
+      }
+      Util.restScrollbar(index);
+
+      // 记住被关闭层的最小化堆叠坐标
+      if (typeof layero.attr("minLeft") === "string") {
+        state.minStackIndex--;
+        state.minStackArr.push(layero.attr("minLeft"));
+      }
+      if (!options.isOutAnim) {
+        remove();
+      } else {
+        setTimeout(function () {
+          remove();
+        }, 200);
+      }
+    };
+    if (!hideOnClose && typeof state.beforeEnd[index] === "function") {
+      Util.promiseLikeResolve(state.beforeEnd[index]()).then(function (result) {
+        if (result !== false) {
+          delete state.beforeEnd[index];
+          executor();
+        }
+      }, function (reason) {
+        reason !== undefined && window.console && window.console.error("layer error hint: " + reason);
+      });
+    } else {
+      delete state.beforeEnd[index];
+      executor();
+    }
+  };
+  const closeAll = (type, callback) => {
+    if (typeof type === "function") {
+      callback = type;
+      type = null;
+    }
+    let domsElem = $("." + doms[0]);
+    $.each(domsElem, function (_index) {
+      let othis = $(this);
+      let is = type ? othis.attr("type") === type : 1;
+      is && close(othis.attr("times"), _index === domsElem.length - 1 ? callback : null);
+      is = null;
+    });
+    if (domsElem.length === 0) typeof callback === "function" && callback();
+  };
+
+  class Container {
+    static index = 0;
+    config = {};
+    constructor(options) {
+      Container.index++;
+      this.config.maxWidth = $(win).width() - 15 * 2; // 初始最大宽度：当前屏幕宽，左右留 15px 边距
+      // 合并配置
+      this.config = $.extend({}, DEFAULTS, state.config, options);
+      // body是否准备完毕,完毕直接调用，没有就延迟30毫秒
+      this.creat();
+    }
+
+    // 设置动画
+    _setAnim(layero) {
+      // anim 兼容旧版 shift
+      if (this.config.shift) {
+        this.config.anim = this.config.shift;
+      }
+
+      // 为兼容 jQuery3.0 的 css 动画影响元素尺寸计算
+      if (doms.anim[this.config.anim]) {
+        let animClass = "layer-anim " + doms.anim[this.config.anim];
+        layero.addClass(animClass).one("webkitAnimationEnd mozAnimationEnd MSAnimationEnd oanimationend animationend", function () {
+          $(this).removeClass(animClass);
+        });
+      }
+    }
+
+    //创建骨架
+    creat() {
+      console.log("creat");
+      $("body");
+
+      // 若 id 对应的弹层已经存在，则不重新创建
+      if (this.config.id && $(`.${doms[0]}`).find(`#${this.config.id}`)[0]) {
+        console.log("没有创建");
+      }
+
+      // 是否移除活动元素的焦点
+      if (this.config.removeFocus && document.activeElement) {
+        document.activeElement.blur(); // 将原始的聚焦节点失焦
+      }
+
+      // 初始化 area 属性
+      if (typeof this.config.area === "string") {
+        this.config.area = this.config.area === "auto" ? ["", ""] : [this.config.area, ""];
+      }
+      const typeSwitch = {
+        // dialog
+        0: () => {
+          this.config.btn = "btn" in this.config ? this.config.btn : state.btn[0];
+          closeAll("dialog");
+        },
+        // iframe
+        2: () => {
+          // console.log("www");
+          // 转换成数组
+          this.config.content = Array.isArray(this.config.content) ? this.config.content : [this.config.content || "", "auto"];
+
+          //重新赋值的操作
+          console.log(this.config.content);
+          this.config.content = Util.sprintf(html.iframe, this.config.content[1] || "auto", doms[4], doms[4], this.config.content[0]);
+        },
+        // loading
+        3: () => {
+          delete this.config.title;
+          delete this.config.closeBtn;
+          this.config.icon === -1 && this.config.icon === 0;
+          closeAll("loading");
+        },
+        // tips
+        4: () => {
+          this.config.content = Array.isArray(this.config.content) ? this.config.content : [this.config.content, "body"];
+          this.config.follow = this.config.content[1];
+          this.config.content = `${this.config.content[0]}<i class="layui-layer-TipsG"></i>`;
+          delete this.config.title;
+          this.config.tips = Array.isArray(this.config.tips) ? this.config.tips : [this.config.tips, true];
+          //是否允许同时存在多个 tips 层，即不销毁上一个 tips
+          this.config.tipsMore || closeAll("tips");
+        }
+      };
+      typeSwitch[this.config.type] && typeSwitch[this.config.type]();
+    }
+  }
   const Class = function (setings) {
     console.log(setings);
     let that = this,
@@ -121,7 +372,7 @@
       };
     that.index = ++layer.index;
     that.config.maxWidth = $(win).width() - 15 * 2; // 初始最大宽度：当前屏幕宽，左右留 15px 边距
-    that.config = $.extend({}, that.config, ready.config, setings);
+    that.config = $.extend({}, that.config, state.config, setings);
     document.body ? creat() : setTimeout(function () {
       creat();
     }, 30);
@@ -129,30 +380,168 @@
   Class.pt = Class.prototype;
 
   // 默认配置
-  Class.pt.config = {
-    type: 0,
-    shade: 0.3,
-    fixed: true,
-    move: doms[1],
-    title: "信息",
-    offset: "auto",
-    area: "auto",
-    closeBtn: 1,
-    icon: -1,
-    time: 0,
-    // 0 表示不自动关闭
-    zIndex: 19891014,
-    maxWidth: 360,
-    anim: 0,
-    isOutAnim: true,
-    // 退出动画
-    minStack: true,
-    // 最小化堆叠
-    moveType: 1,
-    resize: true,
-    scrollbar: true,
-    // 是否允许浏览器滚动条
-    tips: 2
+  Class.pt.config = DEFAULTS;
+
+  // 创建骨架
+  Class.pt.creat = function () {
+    let that = this;
+    let config = that.config;
+    let times = that.index;
+    let content = config.content;
+    let conType = typeof content === "object"; //这里如果是数组它也是true,这里应该优化一下
+
+    console.log(conType);
+    let body = $("body");
+    console.log("走到creat方法");
+    let setAnim = function (layero) {
+      console.log("qq");
+
+      // anim 兼容旧版 shift
+      if (config.shift) {
+        config.anim = config.shift;
+      }
+
+      // 为兼容 jQuery3.0 的 css 动画影响元素尺寸计算
+      if (doms.anim[config.anim]) {
+        let animClass = "layer-anim " + doms.anim[config.anim];
+        layero.addClass(animClass).one("webkitAnimationEnd mozAnimationEnd MSAnimationEnd oanimationend animationend", function () {
+          $(this).removeClass(animClass);
+        });
+      }
+    };
+
+    // 若 id 对应的弹层已经存在，则不重新创建
+    if (config.id && $("." + doms[0]).find("#" + config.id)[0]) {
+      return function () {
+        let layero = $("#" + config.id).closest("." + doms[0]);
+        let index = layero.attr("times");
+        let options = layero.data("config");
+        let elemShade = $("#" + doms.SHADE + index);
+        let maxminStatus = layero.data("maxminStatus") || {};
+        // 若弹层为最小化状态，则点击目标元素时，自动还原
+        if (maxminStatus === "min") {
+          layer.restore(index);
+        } else if (options.hideOnClose) {
+          elemShade.show();
+          layero.show();
+          console.log("qqxx");
+          setAnim(layero);
+          setTimeout(function () {
+            elemShade.css({
+              opacity: elemShade.data(CONSTANTS.SHADE_KEY)
+            });
+          }, 10);
+        }
+      }();
+    }
+
+    // 是否移除活动元素的焦点
+    if (config.removeFocus && document.activeElement) {
+      document.activeElement.blur(); // 将原始的聚焦节点失焦
+    }
+
+    // 初始化 area 属性
+    if (typeof config.area === "string") {
+      config.area = config.area === "auto" ? ["", ""] : [config.area, ""];
+    }
+    if (layer.ie == 6) {
+      config.fixed = false;
+    }
+    switch (config.type) {
+      case 0:
+        config.btn = "btn" in config ? config.btn : state.btn[0];
+        layer.closeAll("dialog");
+        break;
+      case 2:
+        console.log(config);
+        console.log(config.content);
+        let content = config.content = conType ? config.content : [config.content || "", "auto"];
+        console.log(content);
+        console.log(config.content);
+        console.log("times", times);
+        config.content = '<iframe scrolling="' + (config.content[1] || "auto") + '" allowtransparency="true" id="' + doms[4] + "" + times + '" name="' + doms[4] + "" + times + '" onload="this.className=\'\';" class="layui-layer-load" frameborder="0" src="' + config.content[0] + '"></iframe>';
+        console.log(config.content);
+        //这里最终得到的结果是这个 <iframe scrolling="auto" allowtransparency="true" id="layui-layer-iframe1" name="layui-layer-iframe1" onload="this.className='';" class="layui-layer-load" frameborder="0" src="/examples/welcome.html"></iframe>
+
+        break;
+      case 3:
+        delete config.title;
+        delete config.closeBtn;
+        config.icon === -1 && config.icon === 0;
+        layer.closeAll("loading");
+        break;
+      case 4:
+        console.log(conType);
+        conType || (config.content = [config.content, "body"]);
+        console.log("tips");
+        console.log(config.content);
+        config.follow = config.content[1];
+        config.content = config.content[0] + '<i class="layui-layer-TipsG"></i>';
+        delete config.title;
+        config.tips = typeof config.tips === "object" ? config.tips : [config.tips, true];
+        config.tipsMore || layer.closeAll("tips");
+        break;
+    }
+
+    // 建立容器
+    that.vessel(conType, function (html, titleHTML, moveElem) {
+      body.append(html[0]);
+      conType ? function () {
+        config.type == 2 || config.type == 4 ? function () {
+          $("body").append(html[1]);
+        }() : function () {
+          if (!content.parents("." + doms[0])[0]) {
+            content.data("display", content.css("display")).show().addClass("layui-layer-wrap").wrap(html[1]);
+            $("#" + doms[0] + times).find("." + doms[5]).before(titleHTML);
+          }
+        }();
+      }() : body.append(html[1]);
+      $("#" + doms.MOVE)[0] || body.append(state.moveElem = moveElem);
+      that.layero = $("#" + doms[0] + times);
+      that.shadeo = $("#" + doms.SHADE + times);
+      config.scrollbar || Util.setScrollbar(times);
+    }).auto(times);
+
+    // 遮罩
+    that.shadeo.css({
+      "background-color": config.shade[1] || "#000",
+      opacity: config.shade[0] || config.shade,
+      transition: config.shade[2] || ""
+    });
+    that.shadeo.data(CONSTANTS.SHADE_KEY, config.shade[0] || config.shade);
+    config.type == 2 && layer.ie == 6 && that.layero.find("iframe").attr("src", content[0]);
+    console.log(config.type);
+    if (config.type == 4) {
+      //tips层，调用tips的方法
+      that.tips();
+    } else {
+      // 坐标自适应浏览器窗口尺寸
+      that.offset();
+      const zIndex = parseInt(Util.getStyle(document.getElementById(doms.MOVE), "z-index"));
+      if (!zIndex) {
+        that.layero.css("visibility", "hidden").offset().css("visibility", "visible");
+      }
+    }
+
+    // 若是固定定位，则跟随 resize 事件来自适应坐标
+    if (config.fixed) {
+      if (!state.events.resize[that.index]) {
+        state.events.resize[that.index] = function () {
+          that.resize();
+        };
+        // 此处 resize 事件不会一直叠加，当关闭弹层时会移除该事件
+        win.on("resize", state.events.resize[that.index]);
+      }
+    }
+    config.time <= 0 || setTimeout(function () {
+      layer.close(that.index);
+    }, config.time);
+    that.move().callback();
+    console.log("fff");
+    setAnim(that.layero);
+
+    // 记录配置信息
+    that.layero.data("config", config);
   };
 
   // 容器
@@ -169,7 +558,7 @@
     // 遮罩
     config.shade ? '<div class="' + doms.SHADE + '" id="' + doms.SHADE + times + '" times="' + times + '" style="' + ("z-index:" + (zIndex - 1) + "; ") + '"></div>' : "",
     // 主体
-    '<div class="' + doms[0] + (" layui-layer-" + ready.type[config.type]) + ((config.type == 0 || config.type == 2) && !config.shade ? " layui-layer-border" : "") + " " + (config.skin || "") + '" id="' + doms[0] + times + '" type="' + ready.type[config.type] + '" times="' + times + '" showtime="' + config.time + '" conType="' + (conType ? "object" : "string") + '" style="z-index: ' + zIndex + "; width:" + config.area[0] + ";height:" + config.area[1] + ";position:" + (config.fixed ? "fixed;" : "absolute;") + '">' + (conType && config.type != 2 ? "" : titleHTML) +
+    '<div class="' + doms[0] + (" layui-layer-" + state.type[config.type]) + ((config.type == 0 || config.type == 2) && !config.shade ? " layui-layer-border" : "") + " " + (config.skin || "") + '" id="' + doms[0] + times + '" type="' + state.type[config.type] + '" times="' + times + '" showtime="' + config.time + '" conType="' + (conType ? "object" : "string") + '" style="z-index: ' + zIndex + "; width:" + config.area[0] + ";height:" + config.area[1] + ";position:" + (config.fixed ? "fixed;" : "absolute;") + '">' + (conType && config.type != 2 ? "" : titleHTML) +
     // 内容区
     "<div" + (config.id ? ' id="' + config.id + '"' : "") + ' class="layui-layer-content' + (config.type == 0 && config.icon !== -1 ? " layui-layer-padding" : "") + (config.type == 3 ? " layui-layer-loading" + config.icon : "") + '">' +
     // 表情或图标
@@ -230,155 +619,6 @@
       }() + '">' + button + "</div>";
     }() : "") + (config.resize ? '<span class="layui-layer-resize"></span>' : "") + "</div>"], titleHTML, $('<div class="' + doms.MOVE + '" id="' + doms.MOVE + '"></div>'));
     return that;
-  };
-
-  // 创建骨架
-  Class.pt.creat = function () {
-    let that = this;
-    let config = that.config;
-    let times = that.index;
-    let content = config.content;
-    let conType = typeof content === "object";
-    let body = $("body");
-    console.log("走到creat方法");
-    let setAnim = function (layero) {
-      console.log("qq");
-
-      // anim 兼容旧版 shift
-      if (config.shift) {
-        config.anim = config.shift;
-      }
-
-      // 为兼容 jQuery3.0 的 css 动画影响元素尺寸计算
-      if (doms.anim[config.anim]) {
-        let animClass = "layer-anim " + doms.anim[config.anim];
-        layero.addClass(animClass).one("webkitAnimationEnd mozAnimationEnd MSAnimationEnd oanimationend animationend", function () {
-          $(this).removeClass(animClass);
-        });
-      }
-    };
-
-    // 若 id 对应的弹层已经存在，则不重新创建
-    if (config.id && $("." + doms[0]).find("#" + config.id)[0]) {
-      return function () {
-        let layero = $("#" + config.id).closest("." + doms[0]);
-        let index = layero.attr("times");
-        let options = layero.data("config");
-        let elemShade = $("#" + doms.SHADE + index);
-        let maxminStatus = layero.data("maxminStatus") || {};
-        // 若弹层为最小化状态，则点击目标元素时，自动还原
-        if (maxminStatus === "min") {
-          layer.restore(index);
-        } else if (options.hideOnClose) {
-          elemShade.show();
-          layero.show();
-          console.log("qqxx");
-          setAnim(layero);
-          setTimeout(function () {
-            elemShade.css({
-              opacity: elemShade.data(CONSTANTS.SHADE_KEY)
-            });
-          }, 10);
-        }
-      }();
-    }
-
-    // 是否移除活动元素的焦点
-    if (config.removeFocus && document.activeElement) {
-      document.activeElement.blur(); // 将原始的聚焦节点失焦
-    }
-
-    // 初始化 area 属性
-    if (typeof config.area === "string") {
-      config.area = config.area === "auto" ? ["", ""] : [config.area, ""];
-    }
-    if (layer.ie == 6) {
-      config.fixed = false;
-    }
-    switch (config.type) {
-      case 0:
-        config.btn = "btn" in config ? config.btn : ready.btn[0];
-        layer.closeAll("dialog");
-        break;
-      case 2:
-        config.content = conType ? config.content : [config.content || "", "auto"];
-        config.content = '<iframe scrolling="' + (config.content[1] || "auto") + '" allowtransparency="true" id="' + doms[4] + "" + times + '" name="' + doms[4] + "" + times + '" onload="this.className=\'\';" class="layui-layer-load" frameborder="0" src="' + config.content[0] + '"></iframe>';
-        break;
-      case 3:
-        delete config.title;
-        delete config.closeBtn;
-        config.icon === -1 && config.icon === 0;
-        layer.closeAll("loading");
-        break;
-      case 4:
-        conType || (config.content = [config.content, "body"]);
-        config.follow = config.content[1];
-        config.content = config.content[0] + '<i class="layui-layer-TipsG"></i>';
-        delete config.title;
-        config.tips = typeof config.tips === "object" ? config.tips : [config.tips, true];
-        config.tipsMore || layer.closeAll("tips");
-        break;
-    }
-
-    // 建立容器
-    that.vessel(conType, function (html, titleHTML, moveElem) {
-      body.append(html[0]);
-      conType ? function () {
-        config.type == 2 || config.type == 4 ? function () {
-          $("body").append(html[1]);
-        }() : function () {
-          if (!content.parents("." + doms[0])[0]) {
-            content.data("display", content.css("display")).show().addClass("layui-layer-wrap").wrap(html[1]);
-            $("#" + doms[0] + times).find("." + doms[5]).before(titleHTML);
-          }
-        }();
-      }() : body.append(html[1]);
-      $("#" + doms.MOVE)[0] || body.append(ready.moveElem = moveElem);
-      that.layero = $("#" + doms[0] + times);
-      that.shadeo = $("#" + doms.SHADE + times);
-      config.scrollbar || Util.setScrollbar(times);
-    }).auto(times);
-
-    // 遮罩
-    that.shadeo.css({
-      "background-color": config.shade[1] || "#000",
-      opacity: config.shade[0] || config.shade,
-      transition: config.shade[2] || ""
-    });
-    that.shadeo.data(CONSTANTS.SHADE_KEY, config.shade[0] || config.shade);
-    config.type == 2 && layer.ie == 6 && that.layero.find("iframe").attr("src", content[0]);
-    console.log(config.type);
-    if (config.type == 4) {
-      //tips层，调用tips的方法
-      that.tips();
-    } else {
-      // 坐标自适应浏览器窗口尺寸
-      that.offset();
-      const zIndex = parseInt(Util.getStyle(document.getElementById(doms.MOVE), "z-index"));
-      if (!zIndex) {
-        that.layero.css("visibility", "hidden").offset().css("visibility", "visible");
-      }
-    }
-
-    // 若是固定定位，则跟随 resize 事件来自适应坐标
-    if (config.fixed) {
-      if (!ready.events.resize[that.index]) {
-        ready.events.resize[that.index] = function () {
-          that.resize();
-        };
-        // 此处 resize 事件不会一直叠加，当关闭弹层时会移除该事件
-        win.on("resize", ready.events.resize[that.index]);
-      }
-    }
-    config.time <= 0 || setTimeout(function () {
-      layer.close(that.index);
-    }, config.time);
-    that.move().callback();
-    console.log("fff");
-    setAnim(that.layero);
-
-    // 记录配置信息
-    that.layero.data("config", config);
   };
 
   // 当前实例的 resize 事件
@@ -596,8 +836,8 @@
         dict.config = config;
         dict.offset = [e.clientX - parseFloat(layero.css("left")), e.clientY - parseFloat(layero.css("top"))];
         othis.data(DATA_NAME[0], dict);
-        ready.eventMoveElem = othis;
-        ready.moveElem.css("cursor", "move").show();
+        state.eventMoveElem = othis;
+        state.moveElem.css("cursor", "move").show();
       }
       e.preventDefault();
     });
@@ -613,18 +853,18 @@
         dict.index = that.index;
         dict.area = [layero.outerWidth(), layero.outerHeight()];
         othis.data(DATA_NAME[1], dict);
-        ready.eventResizeElem = othis;
-        ready.moveElem.css("cursor", "se-resize").show();
+        state.eventResizeElem = othis;
+        state.moveElem.css("cursor", "se-resize").show();
       }
       e.preventDefault();
     });
 
     // 拖动元素，避免多次调用实例造成事件叠加
-    if (ready.docEvent) return that;
+    if (state.docEvent) return that;
     _DOC.on("mousemove", function (e) {
       // 拖拽移动
-      if (ready.eventMoveElem) {
-        let dict = ready.eventMoveElem.data(DATA_NAME[0]) || {},
+      if (state.eventMoveElem) {
+        let dict = state.eventMoveElem.data(DATA_NAME[0]) || {},
           layero = dict.layero,
           config = dict.config;
         let X = e.clientX - dict.offset[0];
@@ -652,8 +892,8 @@
       }
 
       // Resize
-      if (ready.eventResizeElem) {
-        let dict = ready.eventResizeElem.data(DATA_NAME[1]) || {};
+      if (state.eventResizeElem) {
+        let dict = state.eventResizeElem.data(DATA_NAME[1]) || {};
         let config = dict.config;
         let X = e.clientX - dict.offset[0];
         let Y = e.clientY - dict.offset[1];
@@ -667,21 +907,21 @@
         config.resizing && config.resizing(dict.layero);
       }
     }).on("mouseup", function (e) {
-      if (ready.eventMoveElem) {
-        let dict = ready.eventMoveElem.data(DATA_NAME[0]) || {};
+      if (state.eventMoveElem) {
+        let dict = state.eventMoveElem.data(DATA_NAME[0]) || {};
         let config = dict.config;
-        ready.eventMoveElem.removeData(DATA_NAME[0]);
-        delete ready.eventMoveElem;
-        ready.moveElem.hide();
+        state.eventMoveElem.removeData(DATA_NAME[0]);
+        delete state.eventMoveElem;
+        state.moveElem.hide();
         config.moveEnd && config.moveEnd(dict.layero);
       }
-      if (ready.eventResizeElem) {
-        ready.eventResizeElem.removeData(DATA_NAME[1]);
-        delete ready.eventResizeElem;
-        ready.moveElem.hide();
+      if (state.eventResizeElem) {
+        state.eventResizeElem.removeData(DATA_NAME[1]);
+        delete state.eventResizeElem;
+        state.moveElem.hide();
       }
     });
-    ready.docEvent = true; // 已给 document 执行全局事件
+    state.docEvent = true; // 已给 document 执行全局事件
     return that;
   };
   Class.pt.btnLoading = function (btnElem, isLoading) {
@@ -785,8 +1025,8 @@
         }, 100);
       }
     });
-    config.end && (ready.end[that.index] = config.end);
-    config.beforeEnd && (ready.beforeEnd[that.index] = $.proxy(config.beforeEnd, config, layero, that.index, that));
+    config.end && (state.end[that.index] = config.end);
+    config.beforeEnd && (state.beforeEnd[that.index] = $.proxy(config.beforeEnd, config, layero, that.index, that));
   };
   Class.pt.IE6 = function (layero) {
     // 隐藏select
@@ -817,15 +1057,15 @@
       return layer.zIndex;
     };
   };
-
-  doms.SHADE = "layui-layer-shade";
-  doms.MOVE = "layui-layer-move";
+  // export default Class;
 
   // 默认内置方法。
   var layer$1 = {
     v: "3.7.0",
-    //判断ie
+    // 判断ie
     ie: detectIE(),
+    // 配置对象的临时缓存
+    cache: {},
     // 索引层
     index: 0,
     // 路径
@@ -834,40 +1074,40 @@
     config(options, fn) {
       options = options || {};
 
-      // 把传递进来的参数和默认配置ready.config里面的参数合并后赋值给ready.config和this.cache
-      this.cache = ready.config = $$1.extend({}, ready.config, options);
-      // console.log(this.cache,ready.config);
+      // 把传递进来的参数和默认配置state.config里面的参数合并后赋值给state.config和this.cache
+      this.cache = state.config = $.extend({}, state.config, options);
+      // console.log(this.cache,state.config);
 
-      // 从默认参数ready.config里取path如果没有就取layer对象上的path属性赋值给this.path
-      this.path = ready.config.path || this.path;
+      // 从默认参数state.config里取path如果没有就取layer对象上的path属性赋值给this.path
+      this.path = state.config.path || this.path;
 
-      // console.log(this.path, ready.config.path);
+      // console.log(this.path, state.config.path);
 
       // console.log(options.extend);
 
       typeof options.extend === "string" && (options.extend = [options.extend]);
 
       // 如果设置了路径，则加载样式,这里不需要这样
-      // if (ready.config.path) this.ready();
+      // if (state.config.path) this.ready();
 
       if (!options.extend) return this; //如果选项不存在extend属性，就直接return
 
       // 加载 css
       // isLayui
       //   ? layui.addcss("modules/layer/" + options.extend)
-      //   : ready.link("css/" + options.extend);
+      //   : state.link("css/" + options.extend);
 
       return this;
     },
     // 核心方法
     open(options) {
-      return new Class(options).index;
+      return new Container(options).index;
     },
     // 各种快捷引用
     alert(content, options, yes) {
       let type = typeof options === "function";
       if (type) yes = options;
-      return this.open($$1.extend({
+      return this.open($.extend({
         content: content,
         yes: yes
       }, type ? {} : options));
@@ -878,9 +1118,9 @@
         cancel = yes;
         yes = options;
       }
-      return this.open($$1.extend({
+      return this.open($.extend({
         content: content,
-        btn: ready.btn,
+        btn: state.btn,
         yes: yes,
         btn2: cancel
       }, type ? {} : options));
@@ -888,11 +1128,11 @@
     msg(content, options, end) {
       // 最常用提示层
       let type = typeof options === "function",
-        rskin = ready.config.skin;
+        rskin = state.config.skin;
       let skin = (rskin ? rskin + " " + rskin + "-msg" : "") || "layui-layer-msg";
       let anim = doms.anim.length - 1;
       if (type) end = options;
-      return this.open($$1.extend({
+      return this.open($.extend({
         content: content,
         time: 3000,
         shade: false,
@@ -903,19 +1143,19 @@
         resize: false,
         end: end,
         removeFocus: false
-      }, type && !ready.config.skin ? {
+      }, type && !state.config.skin ? {
         skin: skin + " layui-layer-hui",
         anim: anim
       } : function () {
         options = options || {};
-        if (options.icon === -1 || options.icon === undefined && !ready.config.skin) {
+        if (options.icon === -1 || options.icon === undefined && !state.config.skin) {
           options.skin = skin + " " + (options.skin || "layui-layer-hui");
         }
         return options;
       }()));
     },
     load(icon, options) {
-      return this.open($$1.extend({
+      return this.open($.extend({
         type: 3,
         icon: icon || 0,
         resize: false,
@@ -924,7 +1164,7 @@
       }, options));
     },
     tips(content, follow, options) {
-      return this.open($$1.extend({
+      return this.open($.extend({
         type: 4,
         content: [content, follow],
         closeBtn: false,
@@ -938,18 +1178,18 @@
     },
     // 获取子 iframe 的 DOM
     getChildFrame(selector, index) {
-      index = index || $$1("." + doms[4]).attr("times");
-      return $$1("#" + doms[0] + index).find("iframe").contents().find(selector);
+      index = index || $("." + doms[4]).attr("times");
+      return $("#" + doms[0] + index).find("iframe").contents().find(selector);
     },
     // 得到当前 iframe 层的索引，子 iframe 时使用
     getFrameIndex(name) {
-      return $$1("#" + name).parents("." + doms[4]).attr("times");
+      return $("#" + name).parents("." + doms[4]).attr("times");
     },
     // iframe 层自适应宽高
     iframeAuto(index) {
       if (!index) return;
       let heg = this.getChildFrame("html", index).outerHeight();
-      let layero = $$1("#" + doms[0] + index);
+      let layero = $("#" + doms[0] + index);
       let titHeight = layero.find(doms[1]).outerHeight() || 0;
       let btnHeight = layero.find("." + doms[6]).outerHeight() || 0;
       layero.css({
@@ -961,11 +1201,11 @@
     },
     // 重置 iframe url
     iframeSrc(index, url) {
-      $$1("#" + doms[0] + index).find("iframe").attr("src", url);
+      $("#" + doms[0] + index).find("iframe").attr("src", url);
     },
     // 设定层的样式
     style(index, options, limit) {
-      let layero = $$1("#" + doms[0] + index);
+      let layero = $("#" + doms[0] + index);
       let contentElem = layero.find(".layui-layer-content");
       let type = layero.attr("type");
       let titHeight = layero.find(doms[1]).outerHeight() || 0;
@@ -973,7 +1213,7 @@
       layero.attr("minLeft");
 
       // loading 和 tips 层不允许更改
-      if (type === ready.type[3] || type === ready.type[4]) {
+      if (type === state.type[3] || type === state.type[4]) {
         return;
       }
       if (!limit) {
@@ -986,7 +1226,7 @@
       }
       layero.css(options);
       btnHeight = layero.find("." + doms[6]).outerHeight() || 0;
-      if (type === ready.type[2]) {
+      if (type === state.type[2]) {
         layero.find("iframe").css({
           height: (typeof options.height === "number" ? options.height : layero.height()) - titHeight - btnHeight
         });
@@ -998,19 +1238,19 @@
     },
     // 最小化
     min(index, options) {
-      let layero = $$1("#" + doms[0] + index);
+      let layero = $("#" + doms[0] + index);
       let maxminStatus = layero.data("maxminStatus");
       if (maxminStatus === "min") return; // 当前的状态是否已经是最小化
       if (maxminStatus === "max") this.restore(index); // 若当前为最大化，则先还原后再最小化
 
       layero.data("maxminStatus", "min");
       options = options || layero.data("config") || {};
-      let shadeo = $$1("#" + doms.SHADE + index);
+      let shadeo = $("#" + doms.SHADE + index);
       let elemMin = layero.find(".layui-layer-min");
       let titHeight = layero.find(doms[1]).outerHeight() || 0;
       let minLeft = layero.attr("minLeft"); // 最小化时的横坐标
       let hasMinLeft = typeof minLeft === "string"; // 是否已经赋值过最小化坐标
-      let left = hasMinLeft ? minLeft : 181 * ready.minStackIndex + "px";
+      let left = hasMinLeft ? minLeft : 181 * state.minStackIndex + "px";
       let position = layero.css("position");
       let minWidth = 180; // 最小化时的宽度
       let settings = {
@@ -1022,16 +1262,16 @@
       Util.record(layero); // 记录当前尺寸、坐标，用于还原
 
       // 简易最小化补位
-      if (ready.minStackArr.length > 0) {
-        left = ready.minStackArr[0];
-        ready.minStackArr.shift();
+      if (state.minStackArr.length > 0) {
+        left = state.minStackArr[0];
+        state.minStackArr.shift();
       }
 
       // left 是否超出边界
       if (parseFloat(left) + minWidth > win.width()) {
         left = win.width() - minWidth - function () {
-          ready.minStackArr.edgeIndex = ready.minStackArr.edgeIndex || 0;
-          return ready.minStackArr.edgeIndex += 3;
+          state.minStackArr.edgeIndex = state.minStackArr.edgeIndex || 0;
+          return state.minStackArr.edgeIndex += 3;
         }();
         if (left < 0) left = 0;
       }
@@ -1040,7 +1280,7 @@
       if (options.minStack) {
         settings.left = left;
         settings.top = win.height() - titHeight;
-        hasMinLeft || ready.minStackIndex++; // 若未赋值过最小化坐标，则最小化操作索引自增
+        hasMinLeft || state.minStackIndex++; // 若未赋值过最小化坐标，则最小化操作索引自增
         layero.attr("minLeft", left);
       }
       layero.attr("position", position);
@@ -1054,8 +1294,8 @@
     },
     // 还原
     restore(index) {
-      let layero = $$1("#" + doms[0] + index);
-      let shadeo = $$1("#" + doms.SHADE + index);
+      let layero = $("#" + doms[0] + index);
+      let shadeo = $("#" + doms.SHADE + index);
       let contentElem = layero.find(".layui-layer-content");
       let area = layero.attr("area").split(",");
       let type = layero.attr("type");
@@ -1083,7 +1323,7 @@
       // #1604
       if (contentRecordHeight !== undefined) {
         contentElem.removeData(CONSTANTS.RECORD_HEIGHT_KEY);
-        let contentRecordHeightElem = type === ready.type[2] ? contentElem.children("iframe") : contentElem;
+        let contentRecordHeightElem = type === state.type[2] ? contentElem.children("iframe") : contentElem;
         contentRecordHeightElem.css({
           height: contentRecordHeight
         });
@@ -1091,11 +1331,11 @@
 
       // 恢复遮罩
       shadeo.show();
-      // ready.events.resize[index](); // ?
+      // state.events.resize[index](); // ?
     },
     // 全屏（最大化）
     full(index) {
-      let layero = $$1("#" + doms[0] + index);
+      let layero = $("#" + doms[0] + index);
       let maxminStatus = layero.data("maxminStatus");
       if (maxminStatus === "max") return; // 检查当前的状态是否已经是最大化
       if (maxminStatus === "min") this.restore(index); // 若当前为最小化，则先还原后再最大化
@@ -1106,7 +1346,7 @@
       if (!doms.html.attr("layer-full")) {
         Util.setScrollbar(index);
       }
-      setTimeout(function () {
+      setTimeout(() => {
         let isfix = layero.css("position") === "fixed";
         this.style(index, {
           top: isfix ? 0 : win.scrollTop(),
@@ -1119,138 +1359,18 @@
     },
     // 改变 title
     title(name, index) {
-      let title = $$1("#" + doms[0] + (index || this.index)).find(doms[1]);
+      let title = $("#" + doms[0] + (index || this.index)).find(doms[1]);
       title.html(name);
     },
     // 关闭 layer 总方法
-    close(index, callback) {
-      let layero = function () {
-        let closest = $$1("." + doms[0]).children("#" + index).closest("." + doms[0]);
-        return closest[0] ? (index = closest.attr("times"), closest) : $$1("#" + doms[0] + index);
-      }();
-      let type = layero.attr("type");
-      let options = layero.data("config") || {};
-      let hideOnClose = options.id && options.hideOnClose; // 是否关闭时移除弹层容器
-
-      if (!layero[0]) return;
-      let executor = () => {
-        // 关闭动画
-        let closeAnim = {
-          slideDown: "layer-anim-slide-down-out",
-          slideLeft: "layer-anim-slide-left-out",
-          slideUp: "layer-anim-slide-up-out",
-          slideRight: "layer-anim-slide-right-out"
-        }[options.anim] || "layer-anim-close";
-
-        // 移除主容器
-        let remove = () => {
-          let WRAP = "layui-layer-wrap";
-
-          // 是否关闭时隐藏弹层容器
-          if (hideOnClose) {
-            layero.removeClass("layer-anim " + closeAnim);
-            return layero.hide();
-          }
-
-          // 是否为页面捕获层
-          if (type === ready.type[1] && layero.attr("conType") === "object") {
-            layero.children(":not(." + doms[5] + ")").remove();
-            let wrap = layero.find("." + WRAP);
-            for (let i = 0; i < 2; i++) {
-              wrap.unwrap();
-            }
-            wrap.css("display", wrap.data("display")).removeClass(WRAP);
-          } else {
-            // 低版本 IE 回收 iframe
-            if (type === ready.type[2]) {
-              try {
-                let iframe = $$1("#" + doms[4] + index)[0];
-                iframe.contentWindow.document.write("");
-                iframe.contentWindow.close();
-                layero.find("." + doms[5])[0].removeChild(iframe);
-              } catch (e) {}
-            }
-            layero[0].innerHTML = "";
-            layero.remove();
-          }
-          typeof ready.end[index] === "function" && ready.end[index]();
-          delete ready.end[index];
-          typeof callback === "function" && callback();
-
-          // 移除 reisze 事件
-          if (ready.events.resize[index]) {
-            win.off("resize", ready.events.resize[index]);
-            delete ready.events.resize[index];
-          }
-        };
-        // 移除遮罩
-        let shadeo = $$1("#" + doms.SHADE + index);
-        if (this.ie && this.ie < 10 || !options.isOutAnim) {
-          shadeo[hideOnClose ? "hide" : "remove"]();
-        } else {
-          shadeo.css({
-            opacity: 0
-          });
-          setTimeout(function () {
-            shadeo[hideOnClose ? "hide" : "remove"]();
-          }, 350);
-        }
-
-        // 是否允许关闭动画
-        if (options.isOutAnim) {
-          layero.addClass("layer-anim " + closeAnim);
-        }
-        this.ie == 6 && Util.reselect();
-        Util.restScrollbar(index);
-
-        // 记住被关闭层的最小化堆叠坐标
-        if (typeof layero.attr("minLeft") === "string") {
-          ready.minStackIndex--;
-          ready.minStackArr.push(layero.attr("minLeft"));
-        }
-        if (this.ie && this.ie < 10 || !options.isOutAnim) {
-          remove();
-        } else {
-          setTimeout(function () {
-            remove();
-          }, 200);
-        }
-      };
-      if (!hideOnClose && typeof ready.beforeEnd[index] === "function") {
-        Util.promiseLikeResolve(ready.beforeEnd[index]()).then(function (result) {
-          if (result !== false) {
-            delete ready.beforeEnd[index];
-            executor();
-          }
-        }, function (reason) {
-          reason !== undefined && window.console && window.console.error("layer error hint: " + reason);
-        });
-      } else {
-        delete ready.beforeEnd[index];
-        executor();
-      }
-    },
-    // 关闭所有层
-    closeAll(type, callback) {
-      if (typeof type === "function") {
-        callback = type;
-        type = null;
-      }
-      let domsElem = $$1("." + doms[0]);
-      $$1.each(domsElem, function (_index) {
-        let othis = $$1(this);
-        let is = type ? othis.attr("type") === type : 1;
-        is && this.close(othis.attr("times"), _index === domsElem.length - 1 ? callback : null);
-        is = null;
-      });
-      if (domsElem.length === 0) typeof callback === "function" && callback();
-    },
+    close,
+    closeAll,
     // 根据弹层类型关闭最近打开的层
     closeLast(type, callback) {
       let layerIndexList = [];
-      let isArrayType = $$1.isArray(type);
-      $$1(typeof type === "string" ? ".layui-layer-" + type : ".layui-layer").each(function (i, el) {
-        let layero = $$1(el);
+      let isArrayType = $.isArray(type);
+      $(typeof type === "string" ? ".layui-layer-" + type : ".layui-layer").each(function (i, el) {
+        let layero = $(el);
         let shouldSkip = isArrayType && type.indexOf(layero.attr("type")) === -1 || layero.css("display") === "none";
         if (shouldSkip) return true;
         layerIndexList.push(Number(layero.attr("times")));
@@ -1280,7 +1400,7 @@
         }();
       let success = options.success;
       delete options.success;
-      return this.open($$1.extend({
+      return this.open($.extend({
         type: 1,
         btn: ["确定", "取消"],
         content: content,
@@ -1311,7 +1431,7 @@
       let THIS = "layui-this";
       let success = options.success;
       delete options.success;
-      return this.open($$1.extend({
+      return this.open($.extend({
         type: 1,
         skin: "layui-layer-tab" + Util.skin("tab", this.cache),
         resize: false,
@@ -1344,7 +1464,7 @@
           let main = layero.find(".layui-layer-tabmain").children();
           btn.on("mousedown", function (e) {
             e.stopPropagation ? e.stopPropagation() : e.cancelBubble = true;
-            let othis = $$1(this),
+            let othis = $(this),
               index = othis.index();
             othis.addClass(THIS).siblings().removeClass(THIS);
             main.eq(index).show().siblings().hide();
@@ -1356,17 +1476,18 @@
     },
     // 图片层
     photos(options, loop, key) {
+      let _that = this;
       let dict = {};
 
       // 默认属性
-      options = $$1.extend(true, {
+      options = $.extend(true, {
         toolbar: true,
         footer: true
       }, options);
       if (!options.photos) return;
 
       // 若 photos 并非选择器或 jQuery 对象，则为普通 object
-      let isObject = !(typeof options.photos === "string" || options.photos instanceof $$1);
+      let isObject = !(typeof options.photos === "string" || options.photos instanceof $);
       let photos = isObject ? options.photos : {};
       let data = photos.data || [];
       let start = photos.start || 0;
@@ -1378,11 +1499,11 @@
       // 若 options.photos 不是一个对象
       if (!isObject) {
         // 页面直接获取
-        let parent = $$1(options.photos),
+        let parent = $(options.photos),
           pushData = function () {
             data = [];
             parent.find(options.img).each(function (index) {
-              let othis = $$1(this);
+              let othis = $(this);
               othis.attr("layer-index", index);
               data.push({
                 alt: othis.attr("alt"),
@@ -1396,9 +1517,9 @@
         if (data.length === 0) return;
         loop || parent.on("click", options.img, function () {
           pushData();
-          let othis = $$1(this),
+          let othis = $(this),
             index = othis.attr("layer-index");
-          this.photos($$1.extend(options, {
+          this.photos($.extend(options, {
             photos: {
               start: index,
               data: data,
@@ -1491,11 +1612,11 @@
           event.preventDefault();
           dict.imgnext(true);
         });
-        $$1(document).on("keyup", dict.keyup);
+        $(document).on("keyup", dict.keyup);
 
         // 头部工具栏事件
         layero.off("click").on("click", "*[toolbar-event]", function () {
-          let othis = $$1(this);
+          let othis = $(this);
           let event = othis.attr("toolbar-event");
           switch (event) {
             case "rotate":
@@ -1530,7 +1651,7 @@
               });
               break;
             case "close":
-              this.close(index);
+              _that.close(index);
               break;
           }
           that.offset();
@@ -1571,19 +1692,19 @@
         scrollbar: false
       });
       loadImage(data[start].src, function (img) {
-        this.close(dict.loadi);
+        _that.close(dict.loadi);
         let alt = data[start].alt || "";
 
         // 切换图片时不出现动画
         if (key) options.anim = -1;
 
         // 弹出图片层
-        dict.index = this.open($$1.extend({
+        dict.index = _that.open($.extend({
           type: 1,
           id: "layui-layer-photos",
           area: function () {
             let imgarea = [img.width, img.height];
-            let winarea = [$$1(window).width() - 100, $$1(window).height() - 100];
+            let winarea = [$(window).width() - 100, $(window).height() - 100];
 
             // 若实际图片的宽或者高比 屏幕大（那么进行缩放）
             if (!options.full && (imgarea[0] > winarea[0] || imgarea[1] > winarea[1])) {
@@ -1609,7 +1730,7 @@
           moveOut: true,
           anim: 5,
           isOutAnim: false,
-          skin: "layui-layer-photos" + Util.skin("photos", this.cache),
+          skin: "layui-layer-photos" + Util.skin("photos", _that.cache),
           content: '<div class="layer-layer-photos-main">' + '<img src="' + data[start].src + '" alt="' + alt + '" layer-pid="' + (data[start].pid || "") + '">' + function () {
             let arr = ['<div class="layui-layer-photos-pointer">'];
 
@@ -1640,7 +1761,7 @@
           },
           end() {
             dict.end = true;
-            $$1(document).off("keyup", dict.keyup);
+            $(document).off("keyup", dict.keyup);
           }
         }, options));
       }, function () {

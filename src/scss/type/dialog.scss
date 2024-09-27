@@ -1,0 +1,47 @@
+// dialog
+.layui-layer-dialog {
+  min-width: 240px;
+  .layui-layer-content {
+    position: relative;
+    padding: 16px;
+    line-height: 24px;
+    word-break: break-all;
+    overflow: hidden;
+    font-size: 14px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    .layui-layer-face {
+      position: absolute;
+      top: 18px;
+      left: 16px;
+      color: #959595;
+      font-size: 32px;
+    }
+    .layui-icon-tips {
+      color: #f39b12;
+    }
+    .layui-icon-success {
+      color: #16b777;
+    }
+    .layui-icon-error {
+      top: 19px;
+      color: #ff5722;
+    }
+    .layui-icon-question {
+      color: #ffb800;
+    }
+    .layui-icon-lock {
+      color: #787878;
+    }
+    .layui-icon-face-cry {
+      color: #ff5722;
+    }
+    .layui-icon-face-smile {
+      color: #16b777;
+    }
+  }
+  .layui-layer-padding {
+    padding: 18px 24px 18px 58px;
+    text-align: left;
+  }
+}

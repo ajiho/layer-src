@@ -26,7 +26,10 @@ $(function () {
       confirm: function () {
         layer.confirm(
           "一个询问框的示例？",
-          { icon: 3 },
+          {
+            icon: 3,
+            btnAlign: "c",
+          },
           function () {
             layer.msg("点击确定的回调", { icon: 1 });
           },

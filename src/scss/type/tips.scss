@@ -1,0 +1,54 @@
+.layui-layer-tips {
+  background: none;
+  box-shadow: none;
+  border: none;
+  .layui-layer-content {
+    position: relative;
+    line-height: 22px;
+    min-width: 12px;
+    padding: 8px 15px;
+    font-size: 12px;
+    border-radius: 2px;
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+    background-color: #000;
+    color: #fff;
+  }
+  .layui-layer-close {
+    right: -2px;
+    top: -1px;
+  }
+  i {
+    &.layui-layer-TipsG {
+      position: absolute;
+      width: 0;
+      height: 0;
+      border-width: 8px;
+      border-color: transparent;
+      border-style: dashed;
+    }
+    &.layui-layer-TipsT {
+      left: 5px;
+      border-right-style: solid;
+      border-right-color: #000;
+      bottom: -8px;
+    }
+    &.layui-layer-TipsB {
+      left: 5px;
+      border-right-style: solid;
+      border-right-color: #000;
+      top: -8px;
+    }
+    &.layui-layer-TipsR {
+      top: 5px;
+      border-bottom-style: solid;
+      border-bottom-color: #000;
+      left: -8px;
+    }
+    &.layui-layer-TipsL {
+      top: 5px;
+      border-bottom-style: solid;
+      border-bottom-color: #000;
+      right: -8px;
+    }
+  }
+}

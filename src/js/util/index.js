@@ -1,4 +1,5 @@
-import { ready, doms, CONSTANTS } from "../constants";
+import $ from "jquery";
+import { state, doms, CONSTANTS } from "../constants";
 
 export function detectIE() {
   let agent = navigator.userAgent.toLowerCase();
@@ -37,10 +38,10 @@ export default {
     let type = layero.attr("type");
     let contentElem = layero.find(".layui-layer-content");
     let contentRecordHeightElem =
-      type === ready.type[2] ? contentElem.children("iframe") : contentElem;
+      type === state.type[2] ? contentElem.children("iframe") : contentElem;
     let area = [
-      layero[0].style.width || ready.getStyle(layero[0], "width"),
-      layero[0].style.height || ready.getStyle(layero[0], "height"),
+      layero[0].style.width || state.getStyle(layero[0], "width"),
+      layero[0].style.height || state.getStyle(layero[0], "height"),
       layero.position().top,
       layero.position().left + parseFloat(layero.css("margin-left")),
     ];
@@ -78,5 +79,21 @@ export default {
 
   skin: function (type, cache) {
     return cache.skin ? " " + cache.skin + " " + cache.skin + "-" + type : "";
+  },
+  sprintf(_str, ...args) {
+    let flag = true;
+    let i = 0;
+
+    const str = _str.replace(/%s/g, () => {
+      const arg = args[i++];
+
+      if (typeof arg === "undefined") {
+        flag = false;
+        return "";
+      }
+      return arg;
+    });
+
+    return flag ? str : "";
   },
 };

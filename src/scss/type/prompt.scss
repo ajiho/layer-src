@@ -1,0 +1,25 @@
+// prompt模式
+.layui-layer-prompt {
+  .layui-layer-input {
+    display: block;
+    width: 260px;
+    height: 36px;
+    margin: 0 auto;
+    line-height: 30px;
+    padding-left: 10px;
+    border: 1px solid #e6e6e6;
+    color: #333;
+  }
+  textarea.layui-layer-input {
+    width: 300px;
+    height: 100px;
+    line-height: 20px;
+    padding: 6px 10px;
+  }
+  .layui-layer-content {
+    padding: 16px;
+  }
+  .layui-layer-btn {
+    padding-top: 0;
+  }
+}

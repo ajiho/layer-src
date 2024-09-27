@@ -11,9 +11,17 @@ $(function () {
             skin: "layui-layer-molv", // 样式类名
           },
           function () {
-            layer.alert("深蓝", {
-              skin: "layui-layer-lan",
-            });
+            layer.alert(
+              "深蓝",
+              {
+                skin: "layui-layer-lan",
+              },
+              function () {
+                layer.alert("灰", {
+                  skin: "layui-layer-hui", // 样式类名
+                });
+              }
+            );
           }
         );
       },

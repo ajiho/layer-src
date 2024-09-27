@@ -1,9 +1,6 @@
-
 $(function () {
-
   // // console.log(layer);
   // layer.path = 'adsad'
-  
 
   // //全局设置layer的配置项
   // layer.config({
@@ -13,7 +10,6 @@ $(function () {
   //   skin: "", // 设置默认主题
   //   // … 其他任意基础属性
   // });
-
 
   $(".type").on("click", "button", function () {
     const that = this;
@@ -34,13 +30,16 @@ $(function () {
         });
       },
       alert: function () {
-        layer.alert("对话框内容");
+        layer.alert("对话框内容", {
+          btnAlign: "l",
+        });
       },
       confirm: function () {
         layer.confirm(
           "一个询问框的示例？",
           {
             btn: ["确定", "关闭"], //按钮
+            btnAlign: "c",
           },
           function () {
             layer.msg("第一个回调", { icon: 1 });
@@ -72,7 +71,7 @@ $(function () {
           shadeClose: true,
           shade: 0.8,
           area: ["380px", "80%"],
-          content: "/welcome.html", // iframe 的 url
+          content: "/examples/welcome.html", // iframe 的 url
         });
       },
       load: function () {

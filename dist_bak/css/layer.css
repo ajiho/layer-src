@@ -1,6 +1,3 @@
-
-
-
 @font-face {
   font-family: layui-icon;
   src: url(../font/iconfont.eot?v=282);
@@ -593,9 +590,6 @@
 .layui-icon-close-fill:before {
   content: "\1007";
 }
-.layui-icon-ok-circle:before {
-  content: "\1005";
-}
 
 .layui-anim {
   -webkit-animation-duration: 0.3s;
@@ -628,24 +622,15 @@
   animation-timing-function: linear;
 }
 
-
-
-
-
-
-.layui-layer *{
+.layui-layer * {
   outline: 0;
 }
 
-
 /* 图片层那个图片的描述 */
-.layui-layer h3{
+.layui-layer h3 {
   margin: 0;
   padding: 0;
 }
-
-
-
 
 /**
  * layer style
@@ -736,19 +721,6 @@ html #layuicss-layer {
   animation-duration: 0.3s;
 }
 
-@-webkit-keyframes layer-bounceIn {
-  /* 默认 */
-  0% {
-    opacity: 0;
-    -webkit-transform: scale(0.5);
-    transform: scale(0.5);
-  }
-  100% {
-    opacity: 1;
-    -webkit-transform: scale(1);
-    transform: scale(1);
-  }
-}
 @keyframes layer-bounceIn {
   0% {
     opacity: 0;
@@ -768,22 +740,6 @@ html #layuicss-layer {
   animation-name: layer-bounceIn;
 }
 
-@-webkit-keyframes layer-zoomInDown {
-  0% {
-    opacity: 0;
-    -webkit-transform: scale(0.1) translateY(-2000px);
-    transform: scale(0.1) translateY(-2000px);
-    -webkit-animation-timing-function: ease-in-out;
-    animation-timing-function: ease-in-out;
-  }
-  60% {
-    opacity: 1;
-    -webkit-transform: scale(0.475) translateY(60px);
-    transform: scale(0.475) translateY(60px);
-    -webkit-animation-timing-function: ease-out;
-    animation-timing-function: ease-out;
-  }
-}
 @keyframes layer-zoomInDown {
   0% {
     opacity: 0;
@@ -807,18 +763,6 @@ html #layuicss-layer {
   animation-name: layer-zoomInDown;
 }
 
-@-webkit-keyframes layer-fadeInUpBig {
-  0% {
-    opacity: 0;
-    -webkit-transform: translateY(2000px);
-    transform: translateY(2000px);
-  }
-  100% {
-    opacity: 1;
-    -webkit-transform: translateY(0);
-    transform: translateY(0);
-  }
-}
 @keyframes layer-fadeInUpBig {
   0% {
     opacity: 0;
@@ -838,22 +782,6 @@ html #layuicss-layer {
   animation-name: layer-fadeInUpBig;
 }
 
-@-webkit-keyframes layer-zoomInLeft {
-  0% {
-    opacity: 0;
-    -webkit-transform: scale(0.1) translateX(-2000px);
-    transform: scale(0.1) translateX(-2000px);
-    -webkit-animation-timing-function: ease-in-out;
-    animation-timing-function: ease-in-out;
-  }
-  60% {
-    opacity: 1;
-    -webkit-transform: scale(0.475) translateX(48px);
-    transform: scale(0.475) translateX(48px);
-    -webkit-animation-timing-function: ease-out;
-    animation-timing-function: ease-out;
-  }
-}
 @keyframes layer-zoomInLeft {
   0% {
     opacity: 0;
@@ -877,18 +805,6 @@ html #layuicss-layer {
   animation-name: layer-zoomInLeft;
 }
 
-@-webkit-keyframes layer-rollIn {
-  0% {
-    opacity: 0;
-    -webkit-transform: translateX(-100%) rotate(-120deg);
-    transform: translateX(-100%) rotate(-120deg);
-  }
-  100% {
-    opacity: 1;
-    -webkit-transform: translateX(0px) rotate(0deg);
-    transform: translateX(0px) rotate(0deg);
-  }
-}
 @keyframes layer-rollIn {
   0% {
     opacity: 0;
@@ -921,28 +837,6 @@ html #layuicss-layer {
   animation-name: layer-fadeIn;
 }
 
-@-webkit-keyframes layer-shake {
-  0%,
-  100% {
-    -webkit-transform: translateX(0);
-    transform: translateX(0);
-  }
-  10%,
-  30%,
-  50%,
-  70%,
-  90% {
-    -webkit-transform: translateX(-10px);
-    transform: translateX(-10px);
-  }
-  20%,
-  40%,
-  60%,
-  80% {
-    -webkit-transform: translateX(10px);
-    transform: translateX(10px);
-  }
-}
 @keyframes layer-shake {
   0%,
   100% {
@@ -971,14 +865,6 @@ html #layuicss-layer {
 .layer-anim-06 {
   -webkit-animation-name: layer-shake;
   animation-name: layer-shake;
-}
-@-webkit-keyframes fadeIn {
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
 }
 
 /* 从上往下 */
@@ -1693,22 +1579,6 @@ html #layuicss-layer {
   font-style: normal;
 }
 
-/* 关闭动画 */
-@-webkit-keyframes layer-bounceOut {
-  100% {
-    opacity: 0;
-    -webkit-transform: scale(0.7);
-    transform: scale(0.7);
-  }
-  30% {
-    -webkit-transform: scale(1.05);
-    transform: scale(1.05);
-  }
-  0% {
-    -webkit-transform: scale(1);
-    transform: scale(1);
-  }
-}
 @keyframes layer-bounceOut {
   100% {
     opacity: 0;

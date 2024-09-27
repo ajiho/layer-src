@@ -9,31 +9,31 @@ $(function () {
         // 模拟关闭
         setTimeout(function () {
           layer.close(loadIndex);
-        }, 3000);
+        }, 30000);
       },
       "load-2": function () {
         var loadIndex = layer.load(1);
         // 模拟关闭
-        setTimeout(function(){
-          layer.close(loadIndex)
-        }, 3000);
+        setTimeout(function () {
+          layer.close(loadIndex);
+        }, 30000);
       },
       "load-3": function () {
         var loadIndex = layer.load(2);
         // 模拟关闭
-        setTimeout(function(){
-          layer.close(loadIndex)
-        }, 3000);
+        setTimeout(function () {
+          layer.close(loadIndex);
+        }, 30000);
       },
       "load-4": function () {
-        var loadIndex = layer.msg('加载中', {
+        var loadIndex = layer.msg("加载中", {
           icon: 16,
-          shade: 0.01
-        });;
+          shade: 0.01,
+        });
         // 模拟关闭
-        setTimeout(function(){
-          layer.close(loadIndex)
-        }, 3000);
+        // setTimeout(function () {
+        //   layer.close(loadIndex);
+        // }, 30000);
       },
     };
 

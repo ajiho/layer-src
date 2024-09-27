@@ -7,6 +7,7 @@ $(function () {
       "tips-top": function () {
         layer.tips("向上", that, {
           tips: 1,
+          time: 30000
         });
       },
       "tips-right": function () {

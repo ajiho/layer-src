@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div
+      class="layui-layer layui-layer-page layui-layer-photos"
+      id="layui-layer3"
+      type="page"
+      times="3"
+      showtime="0"
+      contype="string"
+      style="
+        z-index: 19891017;
+        width: 500px;
+        height: 300px;
+        position: fixed;
+        top: -15px;
+        left: 518px;
+      "
+    >
+      <div
+        id="layui-layer-photos"
+        class="layui-layer-content"
+        style="height: 300px"
+      >
+        <div class="layer-layer-photos-main">
+          <img
+            src="https://unpkg.com/outeres@0.1.1/demo/layer.png"
+            alt="layer"
+            layer-pid="1"
+            style="cursor: move"
+          />
+          <div class="layui-layer-photos-pointer">
+            <div class="layer-layer-photos-page">
+              <span
+                class="layui-icon layui-icon-left layui-layer-photos-prev"
+              ></span
+              ><span
+                class="layui-icon layui-icon-right layui-layer-photos-next"
+              ></span>
+            </div>
+            <div class="layui-layer-photos-toolbar layui-layer-photos-header">
+              <span toolbar-event="rotate" data-option="90" title="旋转"
+                ><i class="layui-icon layui-icon-refresh"></i></span
+              ><span toolbar-event="scalex" title="变换"
+                ><i class="layui-icon layui-icon-slider"></i></span
+              ><span toolbar-event="zoom" data-option="0.1" title="放大"
+                ><i class="layui-icon layui-icon-add-circle"></i></span
+              ><span toolbar-event="zoom" data-option="-0.1" title="缩小"
+                ><i class="layui-icon layui-icon-reduce-circle"></i></span
+              ><span toolbar-event="reset" title="还原"
+                ><i class="layui-icon layui-icon-refresh-1"></i></span
+              ><span toolbar-event="close" title="关闭"
+                ><i class="layui-icon layui-icon-close"></i
+              ></span>
+            </div>
+            <div class="layui-layer-photos-toolbar layui-layer-photos-footer">
+              <h3>layer</h3>
+              <em>1 / 3</em
+              ><a
+                href="https://unpkg.com/outeres@0.1.1/demo/layer.png"
+                target="_blank"
+                >查看原图</a
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="layui-layer-setwin"></div>
+      <span class="layui-layer-resize"></span>
+    </div>
+  </body>
+</html>

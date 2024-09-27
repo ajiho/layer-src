@@ -1,4 +1,5 @@
-import { doms, win, ready, CONSTANTS } from "./constants";
+import $ from "jquery";
+import { doms, win, state, CONSTANTS, DEFAULTS } from "./constants";
 import Util, { detectIE } from "./util";
 
 const Class = function (setings) {
@@ -10,7 +11,7 @@ const Class = function (setings) {
     };
   that.index = ++layer.index;
   that.config.maxWidth = $(win).width() - 15 * 2; // 初始最大宽度：当前屏幕宽，左右留 15px 边距
-  that.config = $.extend({}, that.config, ready.config, setings);
+  that.config = $.extend({}, that.config, state.config, setings);
   document.body
     ? creat()
     : setTimeout(function () {
@@ -21,27 +22,7 @@ const Class = function (setings) {
 Class.pt = Class.prototype;
 
 // 默认配置
-Class.pt.config = {
-  type: 0,
-  shade: 0.3,
-  fixed: true,
-  move: doms[1],
-  title: "信息",
-  offset: "auto",
-  area: "auto",
-  closeBtn: 1,
-  icon: -1,
-  time: 0, // 0 表示不自动关闭
-  zIndex: 19891014,
-  maxWidth: 360,
-  anim: 0,
-  isOutAnim: true, // 退出动画
-  minStack: true, // 最小化堆叠
-  moveType: 1,
-  resize: true,
-  scrollbar: true, // 是否允许浏览器滚动条
-  tips: 2,
-};
+Class.pt.config = DEFAULTS;
 
 // 容器
 Class.pt.vessel = function (conType, callback) {
@@ -79,7 +60,7 @@ Class.pt.vessel = function (conType, callback) {
       // 主体
       '<div class="' +
         doms[0] +
-        (" layui-layer-" + ready.type[config.type]) +
+        (" layui-layer-" + state.type[config.type]) +
         ((config.type == 0 || config.type == 2) && !config.shade
           ? " layui-layer-border"
           : "") +
@@ -89,7 +70,7 @@ Class.pt.vessel = function (conType, callback) {
         doms[0] +
         times +
         '" type="' +
-        ready.type[config.type] +
+        state.type[config.type] +
         '" times="' +
         times +
         '" showtime="' +
@@ -308,7 +289,7 @@ Class.pt.creat = function () {
 
   switch (config.type) {
     case 0:
-      config.btn = "btn" in config ? config.btn : ready.btn[0];
+      config.btn = "btn" in config ? config.btn : state.btn[0];
       layer.closeAll("dialog");
       break;
     case 2:
@@ -371,7 +352,7 @@ Class.pt.creat = function () {
                 })();
           })()
         : body.append(html[1]);
-      $("#" + doms.MOVE)[0] || body.append((ready.moveElem = moveElem));
+      $("#" + doms.MOVE)[0] || body.append((state.moveElem = moveElem));
 
       that.layero = $("#" + doms[0] + times);
       that.shadeo = $("#" + doms.SHADE + times);
@@ -414,12 +395,12 @@ Class.pt.creat = function () {
 
   // 若是固定定位，则跟随 resize 事件来自适应坐标
   if (config.fixed) {
-    if (!ready.events.resize[that.index]) {
-      ready.events.resize[that.index] = function () {
+    if (!state.events.resize[that.index]) {
+      state.events.resize[that.index] = function () {
         that.resize();
       };
       // 此处 resize 事件不会一直叠加，当关闭弹层时会移除该事件
-      win.on("resize", ready.events.resize[that.index]);
+      win.on("resize", state.events.resize[that.index]);
     }
   }
 
@@ -699,8 +680,8 @@ Class.pt.move = function () {
       ];
 
       othis.data(DATA_NAME[0], dict);
-      ready.eventMoveElem = othis;
-      ready.moveElem.css("cursor", "move").show();
+      state.eventMoveElem = othis;
+      state.moveElem.css("cursor", "move").show();
     }
 
     e.preventDefault();
@@ -719,20 +700,20 @@ Class.pt.move = function () {
       dict.area = [layero.outerWidth(), layero.outerHeight()];
 
       othis.data(DATA_NAME[1], dict);
-      ready.eventResizeElem = othis;
-      ready.moveElem.css("cursor", "se-resize").show();
+      state.eventResizeElem = othis;
+      state.moveElem.css("cursor", "se-resize").show();
     }
 
     e.preventDefault();
   });
 
   // 拖动元素，避免多次调用实例造成事件叠加
-  if (ready.docEvent) return that;
+  if (state.docEvent) return that;
   _DOC
     .on("mousemove", function (e) {
       // 拖拽移动
-      if (ready.eventMoveElem) {
-        let dict = ready.eventMoveElem.data(DATA_NAME[0]) || {},
+      if (state.eventMoveElem) {
+        let dict = state.eventMoveElem.data(DATA_NAME[0]) || {},
           layero = dict.layero,
           config = dict.config;
 
@@ -763,8 +744,8 @@ Class.pt.move = function () {
       }
 
       // Resize
-      if (ready.eventResizeElem) {
-        let dict = ready.eventResizeElem.data(DATA_NAME[1]) || {};
+      if (state.eventResizeElem) {
+        let dict = state.eventResizeElem.data(DATA_NAME[1]) || {};
         let config = dict.config;
 
         let X = e.clientX - dict.offset[0];
@@ -782,23 +763,23 @@ Class.pt.move = function () {
       }
     })
     .on("mouseup", function (e) {
-      if (ready.eventMoveElem) {
-        let dict = ready.eventMoveElem.data(DATA_NAME[0]) || {};
+      if (state.eventMoveElem) {
+        let dict = state.eventMoveElem.data(DATA_NAME[0]) || {};
         let config = dict.config;
 
-        ready.eventMoveElem.removeData(DATA_NAME[0]);
-        delete ready.eventMoveElem;
-        ready.moveElem.hide();
+        state.eventMoveElem.removeData(DATA_NAME[0]);
+        delete state.eventMoveElem;
+        state.moveElem.hide();
         config.moveEnd && config.moveEnd(dict.layero);
       }
-      if (ready.eventResizeElem) {
-        ready.eventResizeElem.removeData(DATA_NAME[1]);
-        delete ready.eventResizeElem;
-        ready.moveElem.hide();
+      if (state.eventResizeElem) {
+        state.eventResizeElem.removeData(DATA_NAME[1]);
+        delete state.eventResizeElem;
+        state.moveElem.hide();
       }
     });
 
-  ready.docEvent = true; // 已给 document 执行全局事件
+  state.docEvent = true; // 已给 document 执行全局事件
   return that;
 };
 
@@ -927,9 +908,9 @@ Class.pt.callback = function () {
     }
   });
 
-  config.end && (ready.end[that.index] = config.end);
+  config.end && (state.end[that.index] = config.end);
   config.beforeEnd &&
-    (ready.beforeEnd[that.index] = $.proxy(
+    (state.beforeEnd[that.index] = $.proxy(
       config.beforeEnd,
       config,
       layero,

@@ -49,7 +49,7 @@ config.push({
       jquery: "jQuery",
     },
   },
-  external: ['jquery'],
+  external: ["jquery"],
   plugins,
 });
 

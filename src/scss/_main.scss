@@ -1,0 +1,392 @@
+// 弹层
+.layui-layer {
+  * {
+    outline: 0;
+  }
+  position: fixed;
+  pointer-events: auto;
+  top: 150px;
+  left: 0;
+  margin: 0;
+  padding: 0;
+  background-color: #fff;
+  background-clip: content-box;
+  border-radius: 2px;
+  box-shadow: 1px 1px 50px rgba(0, 0, 0, 0.3);
+
+  // 关闭按钮
+  .layui-layer-close {
+    position: absolute;
+  }
+
+  // 标题栏
+  .layui-layer-title {
+    padding: 0 81px 0 16px;
+    height: 50px;
+    line-height: 50px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 14px;
+    color: #333;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border-radius: 2px 2px 0 0;
+  }
+
+  // 内容区域
+  .layui-layer-content {
+    position: relative;
+  }
+
+  // 头部操作区域
+  .layui-layer-setwin {
+    position: absolute;
+    right: 15px;
+    top: 16px;
+    font-size: 0;
+    line-height: initial;
+    span {
+      position: relative;
+      width: 16px;
+      height: 16px;
+      line-height: 18px;
+      margin-left: 10px;
+      text-align: center;
+      font-size: 16px;
+      cursor: pointer;
+      color: #000;
+      box-sizing: border-box;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    .layui-layer-min {
+      &::before {
+        content: "";
+        position: absolute;
+        width: 12px;
+        border-bottom: 1px solid #2e2d3c;
+        left: 50%;
+        top: 50%;
+        margin: -0.5px 0 0 -6px;
+        cursor: pointer;
+      }
+      &:hover::before {
+        background-color: #2d93ca;
+      }
+    }
+
+    .layui-layer-max {
+      &::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        z-index: 1;
+        width: 9px;
+        height: 9px;
+        margin: -5px 0 0 -5px;
+        border: 1px solid #2e2d3c;
+      }
+      &::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        z-index: 1;
+        width: 9px;
+        height: 9px;
+        margin: -5px 0 0 -5px;
+        border: 1px solid #2e2d3c;
+      }
+      &:hover::before {
+        border-color: #2d93ca;
+      }
+
+      &:hover::after {
+        border-color: #2d93ca;
+      }
+    }
+
+    .layui-layer-maxmin {
+      &::before {
+        width: 7px;
+        height: 7px;
+        margin: -3px 0 0 -3px;
+        background-color: #fff;
+      }
+      &::after {
+        width: 7px;
+        height: 7px;
+        margin: -3px 0 0 -3px;
+        background-color: #fff;
+        z-index: 0;
+        margin: -5px 0 0 -1px;
+      }
+    }
+    .layui-layer-close {
+      cursor: pointer;
+      &:hover {
+        opacity: 0.7;
+      }
+    }
+
+    .layui-layer-close2 {
+      position: absolute;
+      right: -28px;
+      top: -28px;
+      color: #fff;
+      background-color: #787878;
+      padding: 3px;
+      border: 3px solid;
+      width: 28px;
+      height: 28px;
+      font-size: 16px;
+      font-weight: bolder;
+      border-radius: 50%;
+      margin-left: 0;
+      &:hover {
+        opacity: unset;
+        background-color: #3888f6;
+      }
+    }
+  }
+
+  .layui-layer-resize {
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    right: 0;
+    bottom: 0;
+    cursor: se-resize;
+  }
+
+  .layui-layer-btn {
+    text-align: right;
+    padding: 0 15px 12px;
+    pointer-events: auto;
+    user-select: none;
+
+    &.layui-layer-btn-l {
+      text-align: left;
+    }
+    &.layui-layer-btn-c {
+      text-align: center;
+    }
+
+    a {
+      display: inline-block;
+      vertical-align: middle;
+      height: 30px;
+      line-height: 30px;
+      margin: 5px 5px 0;
+      padding: 0 16px;
+      border: 1px solid #dedede;
+      background-color: #fff;
+      color: #333;
+      border-radius: 2px;
+      font-weight: 400;
+      cursor: pointer;
+      text-decoration: none;
+      box-sizing: border-box;
+      &:hover {
+        opacity: 0.9;
+        text-decoration: none;
+      }
+      &:active {
+        opacity: 0.8;
+      }
+    }
+    .layui-layer-btn0 {
+      border-color: transparent;
+      background-color: #1e9fff;
+      color: #fff;
+    }
+
+    // 异步按钮的状态
+    .layui-layer-btn-is-loading {
+      opacity: 0.5 !important;
+      cursor: not-allowed !important;
+      cursor: wait !important;
+      overflow: hidden;
+      white-space: nowrap;
+      user-select: none;
+      .layui-layer-btn-loading-icon {
+        margin-right: 8px;
+        font-size: 14px;
+      }
+    }
+  }
+
+  // 内置 skin
+  &.layui-layer-lan {
+    .layui-layer-title {
+      background: #4476a7;
+      color: #fff;
+      border: none;
+    }
+    .layui-layer-setwin {
+      .layui-icon {
+        color: #fff;
+      }
+    }
+    .layui-layer-btn {
+      padding: 5px 10px 10px;
+      border-top: 1px solid #e9e7e7;
+      a {
+        background: #fff;
+        border-color: #e9e7e7;
+        color: #333;
+      }
+      .layui-layer-btn1 {
+        background: #c9c5c5;
+      }
+    }
+  }
+
+  &.layui-layer-molv {
+    .layui-layer-title {
+      background: #009f95;
+      color: #fff;
+      border: none;
+    }
+    .layui-layer-setwin {
+      .layui-icon {
+        color: #fff;
+      }
+    }
+    .layui-layer-btn {
+      a {
+        background: #009f95;
+        border-color: #009f95;
+      }
+      .layui-layer-btn1 {
+        background: #92b8b1;
+      }
+    }
+  }
+
+  // Windows 10 风格主题
+  &.layui-layer-win10 {
+    border: 1px solid #aaa;
+    box-shadow: 1px 1px 6px rgba(0, 0, 0, 0.3);
+    border-radius: none;
+
+    .layui-layer-title {
+      height: 32px;
+      line-height: 32px;
+      padding-left: 8px;
+      border-bottom: none;
+      font-size: 12px;
+    }
+    .layui-layer-setwin {
+      right: 0;
+      top: 0;
+      span {
+        margin-left: 0;
+        width: 32px;
+        height: 32px;
+        padding: 8px;
+        &:hover {
+          background-color: #e5e5e5;
+        }
+
+        &.layui-icon-close:hover {
+          background-color: #e81123;
+          color: #fff;
+        }
+      }
+    }
+
+    &.layui-layer-page {
+      .layui-layer-setwin span {
+        width: 38px;
+      }
+    }
+    &.layui-layer-dialog {
+      .layui-layer-content {
+        padding: 8px 16px 32px;
+        color: #0033bc;
+      }
+      .layui-layer-padding {
+        padding-top: 18px;
+        padding-left: 58px;
+      }
+    }
+    .layui-layer-btn {
+      padding: 5px 5px 10px;
+      border-top: 1px solid #dfdfdf;
+      background-color: #f0f0f0;
+      a {
+        height: 20px;
+        line-height: 18px;
+        background-color: #e1e1e1;
+        border-color: #adadad;
+        color: #000;
+        font-size: 12px;
+        transition: all 0.3s;
+        &:hover {
+          border-color: #2a8edd;
+          background-color: #e5f1fb;
+        }
+      }
+      .layui-layer-btn0 {
+        border-color: #0078d7;
+      }
+    }
+  }
+}
+
+// 遮罩层
+.layui-layer-shade {
+  position: fixed;
+  pointer-events: auto;
+  opacity: 0;
+  transition: opacity 0.35s cubic-bezier(0.34, 0.69, 0.1, 1);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+// 拖拽层
+.layui-layer-move {
+  display: none;
+  position: fixed;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  cursor: move;
+  opacity: 0;
+  filter: alpha(opacity=0);
+  background-color: #fff;
+  z-index: 2147483647;
+}
+
+.layui-layer-border {
+  border: 1px solid #b2b2b2;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
+}
+
+.layui-layer-rim {
+  border: 6px solid #8d8d8d;
+  border: 6px solid rgba(0, 0, 0, 0.3);
+  border-radius: 5px;
+  box-shadow: none;
+}
+.layui-layer-nobg {
+  background: none;
+}
+
+
+
+
+
+
+
+
+
+
+

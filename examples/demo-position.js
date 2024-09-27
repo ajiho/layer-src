@@ -4,8 +4,13 @@ $(function () {
     let type = $(this).data("type");
     let offset = $(this).data("offset");
 
+
+
+    
+
+
     const actions = {
-      offset: function () {
+      position: function () {
         // 弹出位置
         layer.open({
           type: 1,

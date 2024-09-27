@@ -1,0 +1,1 @@
+{"version":3,"sourceRoot":"","sources":["../../../src/scss/type/iframe.scss"],"names":[],"mappings":"AACE;EACE;;AAEF;EACE;EACA","file":"iframe.css","sourcesContent":[".layui-layer-iframe {\r\n  .layui-layer-btn {\r\n    padding-top: 10px;\r\n  }\r\n  iframe {\r\n    display: block;\r\n    width: 100%;\r\n  }\r\n}\r\n"]}

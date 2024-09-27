@@ -7,6 +7,13 @@
     "example": "examples"
   },
   "scripts": {
+    "stylelint": "stylelint --config stylelint.config.mjs \"src/scss/**/*.scss\" --cache --cache-location .cache/.stylelintcache",
+    "stylelint:fix": "stylelint --config stylelint.config.mjs \"src/scss/**/*.scss\" --fix",
+    "css:compile": "sass --silence-deprecation=mixed-decls --load-path=\"node_modules\" --style expanded --source-map --embed-sources --no-error-css src/scss:dist/css",
+    "css:prefix": "postcss --config postcss.config.mjs --replace \"dist/css/*.css\"  \"!dist/css*.min.css\"",
+    "css:min": "cleancss -O1  --format breakWith=lf --with-rebase  --source-map --source-map-inline-sources --output dist/css/ --batch --batch-suffix \".min\" \"dist/css/*.css\" \"!dist/css/*.min.css\"",
+    "css:banner": "cross-env NODE_NO_WARNINGS=1 node build/banner-generator.mjs dist/css/*.css",
+    "css": "run-s css:*",
     "js": "cross-env NODE_NO_WARNINGS=1 rollup --config rollup.config.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -18,8 +25,19 @@
     "@rollup/plugin-commonjs": "^28.0.0",
     "@rollup/plugin-node-resolve": "^15.3.0",
     "@rollup/plugin-terser": "^0.4.4",
+    "autoprefixer": "^10.4.20",
+    "clean-css-cli": "^5.6.3",
     "cross-env": "^7.0.3",
+    "fs-extra": "^11.2.0",
+    "glob": "^11.0.0",
     "jquery": "^3.7.1",
-    "rollup": "^4.22.4"
+    "npm-run-all2": "^6.2.3",
+    "postcss": "^8.4.47",
+    "postcss-cli": "^11.0.0",
+    "postcss-sort-media-queries": "^5.2.0",
+    "rollup": "^4.22.4",
+    "sass": "^1.79.3",
+    "stylelint": "^16.9.0",
+    "stylelint-config-twbs-bootstrap": "^15.0.0"
   }
 }
