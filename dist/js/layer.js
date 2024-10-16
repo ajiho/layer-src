@@ -272,7 +272,7 @@
       if (!layero[0]) return window.console && console.error("index error");
       let type = layero.attr("type");
       let contentElem = layero.find(".layui-layer-content");
-      let contentRecordHeightElem = type === Constants.TYPE_NAME[Constants.TYPE.IFRAME] ? contentElem.children("iframe") : contentElem;
+      let contentRecordHeightElem = type === MAP.TYPE_NAME[MAP.TYPE.IFRAME] ? contentElem.children("iframe") : contentElem;
       let area = [layero[0].style.width || this.getStyle(layero[0], "width"), layero[0].style.height || this.getStyle(layero[0], "height"), layero.position().top, layero.position().left + parseFloat(layero.css("margin-left"))];
       layero.find(".layui-layer-max").addClass("layui-layer-maxmin");
       layero.attr({
@@ -374,7 +374,7 @@
   };
 
   // 缓存常用字符
-  const doms = ["layui-layer",
+  const doms$1 = ["layui-layer",
   //0
   ".layui-layer-title",
   //1
@@ -391,7 +391,7 @@
   "layui-layer-close" //7
   ];
   // 动画类
-  doms.anim = {
+  doms$1.anim = {
     0: "layer-anim-00",
     1: "layer-anim-01",
     2: "layer-anim-02",
@@ -404,10 +404,10 @@
     slideUp: "layer-anim-slide-up",
     slideRight: "layer-anim-slide-right"
   };
-  doms.html = $$1("html");
-  doms.SHADE = "layui-layer-shade";
-  doms.MOVE = "layui-layer-move";
-  doms.anim.length - 1;
+  doms$1.html = $$1("html");
+  doms$1.SHADE = "layui-layer-shade";
+  doms$1.MOVE = "layui-layer-move";
+  doms$1.anim.length - 1;
 
   // console.log(doms.anim);
   // console.log(animlen);
@@ -442,9 +442,9 @@
     config.zIndex = zIndex;
     callback([
     // 遮罩
-    config.shade ? '<div class="' + doms.SHADE + '" id="' + doms.SHADE + times + '" times="' + times + '" style="' + ("z-index:" + (zIndex - 1) + "; ") + '"></div>' : "",
+    config.shade ? '<div class="' + doms$1.SHADE + '" id="' + doms$1.SHADE + times + '" times="' + times + '" style="' + ("z-index:" + (zIndex - 1) + "; ") + '"></div>' : "",
     // 主体
-    '<div class="' + doms[0] + (" layui-layer-" + Store.type[config.type]) + ((config.type == 0 || config.type == 2) && !config.shade ? " layui-layer-border" : "") + " " + (config.skin || "") + '" id="' + doms[0] + times + '" type="' + Store.type[config.type] + '" times="' + times + '" showtime="' + config.time + '" conType="' + (conType ? "object" : "string") + '" style="z-index: ' + zIndex + "; width:" + config.area[0] + ";height:" + config.area[1] + ";position:" + (config.fixed ? "fixed;" : "absolute;") + '">' + (conType && config.type != 2 ? "" : titleHTML) +
+    '<div class="' + doms$1[0] + (" layui-layer-" + Store.type[config.type]) + ((config.type == 0 || config.type == 2) && !config.shade ? " layui-layer-border" : "") + " " + (config.skin || "") + '" id="' + doms$1[0] + times + '" type="' + Store.type[config.type] + '" times="' + times + '" showtime="' + config.time + '" conType="' + (conType ? "object" : "string") + '" style="z-index: ' + zIndex + "; width:" + config.area[0] + ";height:" + config.area[1] + ";position:" + (config.fixed ? "fixed;" : "absolute;") + '">' + (conType && config.type != 2 ? "" : titleHTML) +
     // 内容区
     "<div" + (config.id ? ' id="' + config.id + '"' : "") + ' class="layui-layer-content' + (config.type == 0 && config.icon !== -1 ? " layui-layer-padding" : "") + (config.type == 3 ? " layui-layer-loading" + config.icon : "") + '">' +
     // 表情或图标
@@ -488,7 +488,7 @@
 
       // 关闭按钮
       if (config.closeBtn) {
-        arr.push('<span class="layui-icon layui-icon-close ' + [doms[7], doms[7] + (config.title ? config.closeBtn : config.type == 4 ? "1" : "2")].join(" ") + '"></span>');
+        arr.push('<span class="layui-icon layui-icon-close ' + [doms$1[7], doms$1[7] + (config.title ? config.closeBtn : config.type == 4 ? "1" : "2")].join(" ") + '"></span>');
       }
       return arr.join("");
     }() + "</div>" + (
@@ -497,14 +497,14 @@
       let button = "";
       typeof config.btn === "string" && (config.btn = [config.btn]);
       for (let i = 0, len = config.btn.length; i < len; i++) {
-        button += '<a class="' + doms[6] + "" + i + '">' + config.btn[i] + "</a>";
+        button += '<a class="' + doms$1[6] + "" + i + '">' + config.btn[i] + "</a>";
       }
       return '<div class="' + function () {
-        let className = [doms[6]];
-        if (config.btnAlign) className.push(doms[6] + "-" + config.btnAlign);
+        let className = [doms$1[6]];
+        if (config.btnAlign) className.push(doms$1[6] + "-" + config.btnAlign);
         return className.join(" ");
       }() + '">' + button + "</div>";
-    }() : "") + (config.resize ? '<span class="layui-layer-resize"></span>' : "") + "</div>"], titleHTML, $$1('<div class="' + doms.MOVE + '" id="' + doms.MOVE + '"></div>'));
+    }() : "") + (config.resize ? '<span class="layui-layer-resize"></span>' : "") + "</div>"], titleHTML, $$1('<div class="' + doms$1.MOVE + '" id="' + doms$1.MOVE + '"></div>'));
     return that;
   };
 
@@ -523,8 +523,8 @@
       }
 
       // 为兼容 jQuery3.0 的 css 动画影响元素尺寸计算
-      if (doms.anim[config.anim]) {
-        let animClass = "layer-anim " + doms.anim[config.anim];
+      if (doms$1.anim[config.anim]) {
+        let animClass = "layer-anim " + doms$1.anim[config.anim];
         layero.addClass(animClass).one("webkitAnimationEnd mozAnimationEnd MSAnimationEnd oanimationend animationend", function () {
           $$1(this).removeClass(animClass);
         });
@@ -532,12 +532,12 @@
     };
 
     // 若 id 对应的弹层已经存在，则不重新创建
-    if (config.id && $$1("." + doms[0]).find("#" + config.id)[0]) {
+    if (config.id && $$1("." + doms$1[0]).find("#" + config.id)[0]) {
       return function () {
-        let layero = $$1("#" + config.id).closest("." + doms[0]);
+        let layero = $$1("#" + config.id).closest("." + doms$1[0]);
         let index = layero.attr("times");
         let options = layero.data("config");
-        let elemShade = $$1("#" + doms.SHADE + index);
+        let elemShade = $$1("#" + doms$1.SHADE + index);
         let maxminStatus = layero.data("maxminStatus") || {};
         // 若弹层为最小化状态，则点击目标元素时，自动还原
         if (maxminStatus === "min") {
@@ -574,7 +574,7 @@
         break;
       case 2:
         config.content = conType ? config.content : [config.content || "", "auto"];
-        config.content = '<iframe scrolling="' + (config.content[1] || "auto") + '" allowtransparency="true" id="' + doms[4] + "" + times + '" name="' + doms[4] + "" + times + '" onload="this.className=\'\';" class="layui-layer-load" frameborder="0" src="' + config.content[0] + '"></iframe>';
+        config.content = '<iframe scrolling="' + (config.content[1] || "auto") + '" allowtransparency="true" id="' + doms$1[4] + "" + times + '" name="' + doms$1[4] + "" + times + '" onload="this.className=\'\';" class="layui-layer-load" frameborder="0" src="' + config.content[0] + '"></iframe>';
         break;
       case 3:
         delete config.title;
@@ -600,15 +600,15 @@
         config.type == 2 || config.type == 4 ? function () {
           $$1("body").append(html[1]);
         }() : function () {
-          if (!content.parents("." + doms[0])[0]) {
+          if (!content.parents("." + doms$1[0])[0]) {
             content.data("display", content.css("display")).show().addClass("layui-layer-wrap").wrap(html[1]);
-            $$1("#" + doms[0] + times).find("." + doms[5]).before(titleHTML);
+            $$1("#" + doms$1[0] + times).find("." + doms$1[5]).before(titleHTML);
           }
         }();
       }() : body.append(html[1]);
-      $$1("#" + doms.MOVE)[0] || body.append(Store.moveElem = moveElem);
-      that.layero = $$1("#" + doms[0] + times);
-      that.shadeo = $$1("#" + doms.SHADE + times);
+      $$1("#" + doms$1.MOVE)[0] || body.append(Store.moveElem = moveElem);
+      that.layero = $$1("#" + doms$1[0] + times);
+      that.shadeo = $$1("#" + doms$1.SHADE + times);
       config.scrollbar || Util.setScrollbar(times);
     }).auto(times);
 
@@ -626,7 +626,7 @@
     } else {
       // 坐标自适应浏览器窗口尺寸
       that.offset();
-      const zIndex = parseInt(Util.getStyle(document.getElementById(doms.MOVE), "z-index"));
+      const zIndex = parseInt(Util.getStyle(document.getElementById(doms$1.MOVE), "z-index"));
       if (!zIndex) {
         that.layero.css("visibility", "hidden").offset().css("visibility", "visible");
       }
@@ -665,7 +665,7 @@
   Class.pt.auto = function (index) {
     let that = this,
       config = that.config,
-      layero = $$1("#" + doms[0] + index);
+      layero = $$1("#" + doms$1[0] + index);
     if (config.area[0] === "" && config.maxWidth > 0) {
       // 适配 ie7
       if (layer.ie && layer.ie < 8 && config.btn) {
@@ -674,8 +674,8 @@
       layero.outerWidth() > config.maxWidth && layero.width(config.maxWidth);
     }
     let area = [layero.innerWidth(), layero.innerHeight()];
-    let titHeight = layero.find(doms[1]).outerHeight() || 0;
-    let btnHeight = layero.find("." + doms[6]).outerHeight() || 0;
+    let titHeight = layero.find(doms$1[1]).outerHeight() || 0;
+    let btnHeight = layero.find("." + doms$1[6]).outerHeight() || 0;
     let setHeight = function (elem) {
       elem = layero.find(elem);
       elem.height(area[1] - titHeight - btnHeight - 2 * (parseFloat(elem.css("padding-top")) | 0));
@@ -688,13 +688,13 @@
         if (config.area[1] === "") {
           if (config.maxHeight > 0 && layero.outerHeight() > config.maxHeight) {
             area[1] = config.maxHeight;
-            setHeight("." + doms[5]);
+            setHeight("." + doms$1[5]);
           } else if (config.fixed && area[1] >= $$1(window).height()) {
             area[1] = $$1(window).height();
-            setHeight("." + doms[5]);
+            setHeight("." + doms$1[5]);
           }
         } else {
-          setHeight("." + doms[5]);
+          setHeight("." + doms$1[5]);
         }
         break;
     }
@@ -755,7 +755,7 @@
 
     // 最小化窗口时的自适应
     if (layero.data("maxminStatus") === "min") {
-      that.offsetTop = $$1(window).height() - (layero.find(doms[1]).outerHeight() || 0);
+      that.offsetTop = $$1(window).height() - (layero.find(doms$1[1]).outerHeight() || 0);
       that.offsetLeft = layero.css("left");
     }
 
@@ -832,7 +832,7 @@
     } else if (guide === 4) {
       layArea[0] + 8 * 2 - goal.left > 0 && goal.where[1]();
     }
-    layero.find("." + doms[5]).css({
+    layero.find("." + doms$1[5]).css({
       "background-color": config.tips[1],
       "padding-right": config.closeBtn ? "30px" : ""
     });
@@ -987,7 +987,7 @@
     handleButtonEvents(layero, config, that);
 
     // 右上角关闭回调
-    layero.find("." + doms[7]).on("click", function () {
+    layero.find("." + doms$1[7]).on("click", function () {
       handleCancel(config, that);
     });
 
@@ -1013,7 +1013,7 @@
 
   // 处理按钮点击事件
   function handleButtonEvents(layero, config, that) {
-    layero.find("." + doms[6]).children("a").on("click", function () {
+    layero.find("." + doms$1[6]).children("a").on("click", function () {
       let btnElem = $$1(this);
       let index = btnElem.index();
       if (btnElem.attr("disabled")) return;
@@ -1088,7 +1088,7 @@
     // 隐藏select
     $$1("select").each(function (index, value) {
       let sthis = $$1(this);
-      if (!sthis.parents("." + doms[0])[0]) {
+      if (!sthis.parents("." + doms$1[0])[0]) {
         sthis.css("display") === "none" || sthis.attr({
           layer: "1"
         }).hide();
@@ -1139,7 +1139,7 @@
       const html = [this.#getMainWrapBeginHTML()];
 
       // 加入title
-      html.push(this.#getTtitleHTML());
+      html.push(this.getTtitleHTML());
 
       // 加入内容区开头标签
       html.push(this.#getContentBeginHTML());
@@ -1194,7 +1194,7 @@
       //类型
       this.zIndex, this.config.area[0], this.config.area[1], this.config.fixed ? "fixed;" : "absolute;");
     }
-    #getTtitleHTML() {
+    getTtitleHTML() {
       // title选项的类型判断
       const titleType = Array.isArray(this.config.title);
       // 加入title
@@ -1592,7 +1592,7 @@
     }
     fullscreenToggle() {
       this.layero.find(`.${Constants.CLASSES.layerMax}`).on("click", () => {
-        const maxButton = layero.find(`.${Constants.CLASSES.layerMax}`);
+        const maxButton = this.layero.find(`.${Constants.CLASSES.layerMax}`);
         if (maxButton.hasClass(Constants.CLASSES.layerMaxMin)) {
           this.layer.restore(this.index);
           this.config.restore && this.config.restore(this.layero, this.index, this.container);
@@ -1662,15 +1662,16 @@
 
       // 加入遮罩层
       $$1("body").append(htmlGenerator.getShadeHTML());
+      console.log(this.config.content);
 
       // 判断content选项是对象
       if (typeof this.config.content === "object") {
         if (this.config.type == MAP.TYPE.IFRAME || this.config.type == MAP.TYPE.TIPS) {
           $$1("body").append(html);
         } else {
-          if (!this.content.parents(`.${Constants.CLASSES.layuiLayer}`)[0]) {
-            this.content.data("display", this.content.css("display")).show().addClass("layui-layer-wrap").wrap(html);
-            $$1(`#${Constants.CLASSES.layuiLayer}${this.index}`).find(`.${Constants.CLASSES.layerContent}`).before(titleHTML);
+          if (!this.config.content.parents(`.${Constants.CLASSES.layuiLayer}`)[0]) {
+            this.config.content.data("display", this.config.content.css("display")).show().addClass(Constants.CLASSES.layerWrap).wrap(html);
+            $$1(`#${Constants.CLASSES.layuiLayer}${this.index}`).find(`.${Constants.CLASSES.layerContent}`).before(htmlGenerator.getTtitleHTML());
           }
         }
       } else {
@@ -2017,6 +2018,69 @@
     //==============公开api===================
     // 计算坐标
     offset() {
+      let that = this,
+        config = that.config,
+        layero = that.layero;
+      let area = [layero.outerWidth(), layero.outerHeight()];
+      let type = typeof config.offset === "object";
+      that.offsetTop = ($$1(window).height() - area[1]) / 2;
+      that.offsetLeft = ($$1(window).width() - area[0]) / 2;
+      if (type) {
+        that.offsetTop = config.offset[0];
+        that.offsetLeft = config.offset[1] || that.offsetLeft;
+      } else if (config.offset !== "auto") {
+        if (config.offset === "t") {
+          // 上
+          that.offsetTop = 0;
+        } else if (config.offset === "r") {
+          // 右
+          that.offsetLeft = $$1(window).width() - area[0];
+        } else if (config.offset === "b") {
+          // 下
+          that.offsetTop = $$1(window).height() - area[1];
+        } else if (config.offset === "l") {
+          // 左
+          that.offsetLeft = 0;
+        } else if (config.offset === "lt") {
+          // 左上
+          that.offsetTop = 0;
+          that.offsetLeft = 0;
+        } else if (config.offset === "lb") {
+          // 左下
+          that.offsetTop = $$1(window).height() - area[1];
+          that.offsetLeft = 0;
+        } else if (config.offset === "rt") {
+          // 右上
+          that.offsetTop = 0;
+          that.offsetLeft = $$1(window).width() - area[0];
+        } else if (config.offset === "rb") {
+          // 右下
+          that.offsetTop = $$1(window).height() - area[1];
+          that.offsetLeft = $$1(window).width() - area[0];
+        } else {
+          that.offsetTop = config.offset;
+        }
+      }
+      if (!config.fixed) {
+        that.offsetTop = /%$/.test(that.offsetTop) ? $$1(window).height() * parseFloat(that.offsetTop) / 100 : parseFloat(that.offsetTop);
+        that.offsetLeft = /%$/.test(that.offsetLeft) ? $$1(window).width() * parseFloat(that.offsetLeft) / 100 : parseFloat(that.offsetLeft);
+        that.offsetTop += $$1(window).scrollTop();
+        that.offsetLeft += $$1(window).scrollLeft();
+      }
+
+      // 最小化窗口时的自适应
+      if (layero.data("maxminStatus") === "min") {
+        that.offsetTop = $$1(window).height() - (layero.find(doms[1]).outerHeight() || 0);
+        that.offsetLeft = layero.css("left");
+      }
+
+      // 设置坐标
+      layero.css({
+        top: that.offsetTop,
+        left: that.offsetLeft
+      });
+    }
+    offset2() {
       const {
         config,
         layero

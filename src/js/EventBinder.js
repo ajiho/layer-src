@@ -192,7 +192,9 @@ class EventBinder {
 
   fullscreenToggle() {
     this.layero.find(`.${Constants.CLASSES.layerMax}`).on("click", () => {
-      const maxButton = layero.find(`.${Constants.CLASSES.layerMax}`);
+      
+      
+      const maxButton = this.layero.find(`.${Constants.CLASSES.layerMax}`);
 
       if (maxButton.hasClass(Constants.CLASSES.layerMaxMin)) {
         this.layer.restore(this.index);

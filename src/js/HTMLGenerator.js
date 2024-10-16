@@ -32,7 +32,7 @@ class HTMLGenerator {
     const html = [this.#getMainWrapBeginHTML()];
 
     // 加入title
-    html.push(this.#getTtitleHTML());
+    html.push(this.getTtitleHTML());
 
     // 加入内容区开头标签
     html.push(this.#getContentBeginHTML());
@@ -100,7 +100,7 @@ class HTMLGenerator {
     );
   }
 
-  #getTtitleHTML() {
+  getTtitleHTML() {
     // title选项的类型判断
     const titleType = Array.isArray(this.config.title);
     // 加入title

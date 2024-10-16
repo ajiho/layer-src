@@ -74,6 +74,8 @@ class Container {
     // 加入遮罩层
     $("body").append(htmlGenerator.getShadeHTML());
 
+    console.log(this.config.content);
+
     // 判断content选项是对象
     if (typeof this.config.content === "object") {
       if (
@@ -82,16 +84,18 @@ class Container {
       ) {
         $("body").append(html);
       } else {
-        if (!this.content.parents(`.${Constants.CLASSES.layuiLayer}`)[0]) {
-          this.content
-            .data("display", this.content.css("display"))
+        if (
+          !this.config.content.parents(`.${Constants.CLASSES.layuiLayer}`)[0]
+        ) {
+          this.config.content
+            .data("display", this.config.content.css("display"))
             .show()
-            .addClass("layui-layer-wrap")
+            .addClass(Constants.CLASSES.layerWrap)
             .wrap(html);
 
           $(`#${Constants.CLASSES.layuiLayer}${this.index}`)
             .find(`.${Constants.CLASSES.layerContent}`)
-            .before(titleHTML);
+            .before(htmlGenerator.getTtitleHTML());
         }
       }
     } else {
@@ -526,76 +530,73 @@ class Container {
   //==============公开api===================
   // 计算坐标
   offset() {
-    const { config, layero } = this;
-    const windowHeight = $(window).height();
-    const windowWidth = $(window).width();
-    let offsetTop = (windowHeight - this.layeroouterHeight) / 2;
-    let offsetLeft = (windowWidth - this.layeroOuterWidth) / 2;
+    let that = this,
+      config = that.config,
+      layero = that.layero;
+    let area = [layero.outerWidth(), layero.outerHeight()];
+    let type = typeof config.offset === "object";
+    that.offsetTop = ($(window).height() - area[1]) / 2;
+    that.offsetLeft = ($(window).width() - area[0]) / 2;
 
-    const applyOffset = (top, left) => {
-      offsetTop = typeof top !== "undefined" ? top : offsetTop;
-      offsetLeft = typeof left !== "undefined" ? left : offsetLeft;
-    };
-
-    // 检查偏移量是否为数组（自定义定位）
-    if (Array.isArray(config.offset)) {
-      applyOffset(config.offset[0], config.offset[1]);
+    if (type) {
+      that.offsetTop = config.offset[0];
+      that.offsetLeft = config.offset[1] || that.offsetLeft;
     } else if (config.offset !== "auto") {
-      const offsetMap = {
-        t: () => applyOffset(0),
-        r: () => applyOffset(undefined, windowWidth - this.layeroOuterWidth),
-        b: () => applyOffset(windowHeight - this.layeroouterHeight),
-        l: () => applyOffset(undefined, 0),
-        lt: () => applyOffset(0, 0),
-        lb: () => applyOffset(windowHeight - this.layeroouterHeight, 0),
-        rt: () => applyOffset(0, windowWidth - this.layeroOuterWidth),
-        rb: () =>
-          applyOffset(
-            windowHeight - this.layeroouterHeight,
-            windowWidth - this.layeroOuterWidth
-          ),
-      };
-
-      // 应用地图的偏移量，或使用自定义值
-      if (offsetMap[config.offset]) {
-        offsetMap[config.offset]();
+      if (config.offset === "t") {
+        // 上
+        that.offsetTop = 0;
+      } else if (config.offset === "r") {
+        // 右
+        that.offsetLeft = $(window).width() - area[0];
+      } else if (config.offset === "b") {
+        // 下
+        that.offsetTop = $(window).height() - area[1];
+      } else if (config.offset === "l") {
+        // 左
+        that.offsetLeft = 0;
+      } else if (config.offset === "lt") {
+        // 左上
+        that.offsetTop = 0;
+        that.offsetLeft = 0;
+      } else if (config.offset === "lb") {
+        // 左下
+        that.offsetTop = $(window).height() - area[1];
+        that.offsetLeft = 0;
+      } else if (config.offset === "rt") {
+        // 右上
+        that.offsetTop = 0;
+        that.offsetLeft = $(window).width() - area[0];
+      } else if (config.offset === "rb") {
+        // 右下
+        that.offsetTop = $(window).height() - area[1];
+        that.offsetLeft = $(window).width() - area[0];
       } else {
-        offsetTop = config.offset;
+        that.offsetTop = config.offset;
       }
     }
 
-    // 处理非固定定位并转换百分比值
-    const calculateOffset = (value, dimension, scroll) => {
-      return /%$/.test(value)
-        ? (dimension * parseFloat(value)) / 100 + scroll
-        : parseFloat(value);
-    };
-
     if (!config.fixed) {
-      offsetTop = calculateOffset(
-        offsetTop,
-        windowHeight,
-        $(window).scrollTop()
-      );
-      offsetLeft = calculateOffset(
-        offsetLeft,
-        windowWidth,
-        $(window).scrollLeft()
-      );
+      that.offsetTop = /%$/.test(that.offsetTop)
+        ? ($(window).height() * parseFloat(that.offsetTop)) / 100
+        : parseFloat(that.offsetTop);
+      that.offsetLeft = /%$/.test(that.offsetLeft)
+        ? ($(window).width() * parseFloat(that.offsetLeft)) / 100
+        : parseFloat(that.offsetLeft);
+      that.offsetTop += $(window).scrollTop();
+      that.offsetLeft += $(window).scrollLeft();
     }
 
-    // 处理最小化的窗口调整
+    // 最小化窗口时的自适应
     if (layero.data("maxminStatus") === "min") {
-      const titleOuterHeight =
-        layero.find(`.${Constants.CLASSES.layerTitle}`).outerHeight() || 0;
-      offsetTop = windowHeight - titleOuterHeight;
-      offsetLeft = layero.css("left");
+      that.offsetTop =
+        $(window).height() - (layero.find(doms[1]).outerHeight() || 0);
+      that.offsetLeft = layero.css("left");
     }
 
-    // 设置最终的CSS定位
+    // 设置坐标
     layero.css({
-      top: offsetTop,
-      left: offsetLeft,
+      top: that.offsetTop,
+      left: that.offsetLeft,
     });
   }
 }

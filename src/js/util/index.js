@@ -1,5 +1,5 @@
 import $ from "jquery";
-import Constants from "../constants/index";
+import Constants, { MAP } from "../constants/index";
 
 export default {
   getLayeroByIndex(index) {
@@ -39,7 +39,7 @@ export default {
     let contentElem = layero.find(".layui-layer-content");
 
     let contentRecordHeightElem =
-      type === Constants.TYPE_NAME[Constants.TYPE.IFRAME]
+      type === MAP.TYPE_NAME[MAP.TYPE.IFRAME]
         ? contentElem.children("iframe")
         : contentElem;
 
