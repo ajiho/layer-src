@@ -1,1 +1,0 @@
-{"version":3,"sourceRoot":"","sources":["../../../src/scss/type/page.scss"],"names":[],"mappings":"AACE;EACE;EACA;;AAEF;EACE","file":"page.css","sourcesContent":[".layui-layer-page {\r\n  .layui-layer-content {\r\n    position: relative;\r\n    overflow: auto;\r\n  }\r\n  .layui-layer-btn {\r\n    padding-top: 10px;\r\n  }\r\n}\r\n"]}

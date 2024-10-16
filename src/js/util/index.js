@@ -1,17 +1,17 @@
 import $ from "jquery";
-import { state, doms, CONSTANTS } from "../constants";
-
-export function detectIE() {
-  let agent = navigator.userAgent.toLowerCase();
-  return !!window.ActiveXObject || "ActiveXObject" in window
-    ? (agent.match(/msie\s(\d+)/) || [])[1] || "11"
-    : false;
-}
+import Constants from "../constants/index";
 
 export default {
-  detectIE,
+  getLayeroByIndex(index) {
+    return $(`#${Constants.CLASSES.layuiLayer}${index}`);
+  },
+
+  getShadeoByIndex(index) {
+    return $(`#${Constants.CLASSES.shade}${index}`);
+  },
+
   // 获取节点的 style 属性值
-  getStyle: function (node, name) {
+  getStyle(node, name) {
     let style = node.currentStyle
       ? node.currentStyle
       : window.getComputedStyle(node, null);
@@ -21,52 +21,58 @@ export default {
   },
 
   // for ie6 恢复 select
-  reselect: function () {
+  reselect() {
     $.each($("select"), function (index, value) {
       let sthis = $(this);
-      if (!sthis.parents("." + doms[0])[0]) {
+      if (!sthis.parents(`.${Constants.CLASSES.layuiLayer}`)[0]) {
         sthis.attr("layer") == 1 &&
-          $("." + doms[0]).length < 1 &&
+          $(`.${Constants.CLASSES.layuiLayer}`).length < 1 &&
           sthis.removeAttr("layer").show();
       }
       sthis = null;
     });
   },
   // 记录宽高坐标，用于还原
-  record: function (layero) {
+  record(layero) {
     if (!layero[0]) return window.console && console.error("index error");
     let type = layero.attr("type");
     let contentElem = layero.find(".layui-layer-content");
+
     let contentRecordHeightElem =
-      type === state.type[2] ? contentElem.children("iframe") : contentElem;
+      type === Constants.TYPE_NAME[Constants.TYPE.IFRAME]
+        ? contentElem.children("iframe")
+        : contentElem;
+
     let area = [
-      layero[0].style.width || state.getStyle(layero[0], "width"),
-      layero[0].style.height || state.getStyle(layero[0], "height"),
+      layero[0].style.width || this.getStyle(layero[0], "width"),
+      layero[0].style.height || this.getStyle(layero[0], "height"),
       layero.position().top,
       layero.position().left + parseFloat(layero.css("margin-left")),
     ];
     layero.find(".layui-layer-max").addClass("layui-layer-maxmin");
     layero.attr({ area: area });
     contentElem.data(
-      CONSTANTS.RECORD_HEIGHT_KEY,
+      Constants.DATAKEY.RECORD_HEIGHT_KEY,
       this.getStyle(contentRecordHeightElem[0], "height")
     );
   },
   // 设置页面滚动条
-  setScrollbar: function (index) {
-    doms.html.css("overflow", "hidden").attr("layer-full", index);
+  setScrollbar(index) {
+    $("html").css("overflow", "hidden").attr("layer-full", index);
   },
   // 恢复页面滚动条
   restScrollbar: function (index) {
-    if (doms.html.attr("layer-full") == index) {
-      doms.html[0].style[
-        doms.html[0].style.removeProperty ? "removeProperty" : "removeAttribute"
+    const $html = $("html");
+
+    if ($html.attr("layer-full") == index) {
+      $html[0].style[
+        $html[0].style.removeProperty ? "removeProperty" : "removeAttribute"
       ]("overflow");
-      doms.html.removeAttr("layer-full");
+      $html.removeAttr("layer-full");
     }
   },
   // 类似 Promise.resolve
-  promiseLikeResolve: function (value) {
+  promiseLikeResolve(value) {
     let deferred = $.Deferred();
 
     if (value && typeof value.then === "function") {
@@ -77,9 +83,19 @@ export default {
     return deferred.promise();
   },
 
-  skin: function (type, cache) {
-    return cache.skin ? " " + cache.skin + " " + cache.skin + "-" + type : "";
+  skin(type, config) {
+    const { skin } = config;
+
+    // 如果有定义 skin，则返回带有皮肤类名的字符串
+    if (skin) {
+      const skinClass = `${skin} ${skin}-${type}`;
+      return ` ${skinClass}`;
+    }
+
+    // 否则返回空字符串
+    return "";
   },
+
   sprintf(_str, ...args) {
     let flag = true;
     let i = 0;

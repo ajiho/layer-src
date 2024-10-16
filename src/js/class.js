@@ -1,17 +1,73 @@
 import $ from "jquery";
-import { doms, win, state, CONSTANTS, DEFAULTS } from "./constants";
-import Util, { detectIE } from "./util";
+import Constants from "./constants/index";
+import Util from "./util";
+
+const Store = {
+  // 最新弹出层的层叠顺序
+  zIndex: 0,
+  // 最新弹出层的索引
+  index: 0,
+  // 配置,该配置项的作用是可以通过layer.config(options)方法来设置全局的默认配置
+  config: {
+    //是否移除弹层触发元素的焦点，避免按回车键时重复弹出
+    removeFocus: true,
+  },
+  end: {},
+  beforeEnd: {},
+  events: { resize: {} },
+  minStackIndex: 0,
+  minStackArr: [],
+  btn: ["确定", "取消"],
+  // 五种原始层模式
+  type: ["dialog", "page", "iframe", "loading", "tips"],
+};
+
+// 缓存常用字符
+const doms = [
+  "layui-layer", //0
+  ".layui-layer-title", //1
+  ".layui-layer-main", //2
+  ".layui-layer-dialog", //3
+  "layui-layer-iframe", //4
+  "layui-layer-content", //5
+  "layui-layer-btn", //6
+  "layui-layer-close", //7
+];
+// 动画类
+doms.anim = {
+  0: "layer-anim-00",
+  1: "layer-anim-01",
+  2: "layer-anim-02",
+  3: "layer-anim-03",
+  4: "layer-anim-04",
+  5: "layer-anim-05",
+  6: "layer-anim-06",
+  slideDown: "layer-anim-slide-down",
+  slideLeft: "layer-anim-slide-left",
+  slideUp: "layer-anim-slide-up",
+  slideRight: "layer-anim-slide-right",
+};
+
+doms.html = $("html");
+
+doms.SHADE = "layui-layer-shade";
+doms.MOVE = "layui-layer-move";
+
+let animlen = doms.anim.length - 1;
+
+// console.log(doms.anim);
+// console.log(animlen);
 
 const Class = function (setings) {
-  console.log(setings);
-
   let that = this,
     creat = function () {
       that.creat();
     };
-  that.index = ++layer.index;
-  that.config.maxWidth = $(win).width() - 15 * 2; // 初始最大宽度：当前屏幕宽，左右留 15px 边距
-  that.config = $.extend({}, that.config, state.config, setings);
+
+  ++Store.index;
+  that.index = Store.index;
+  that.config.maxWidth = $(window).width() - 15 * 2; // 初始最大宽度：当前屏幕宽，左右留 15px 边距
+  that.config = $.extend({}, that.config, Store.config, setings);
   document.body
     ? creat()
     : setTimeout(function () {
@@ -22,15 +78,17 @@ const Class = function (setings) {
 Class.pt = Class.prototype;
 
 // 默认配置
-Class.pt.config = DEFAULTS;
+Class.pt.config = Constants.DEFAULTS;
 
 // 容器
 Class.pt.vessel = function (conType, callback) {
-  let that = this,
-    times = that.index,
-    config = that.config;
-  let zIndex = config.zIndex + times,
-    titype = typeof config.title === "object";
+  let that = this;
+  let times = that.index;
+  let config = that.config;
+
+  let zIndex = config.zIndex + times;
+
+  let titype = typeof config.title === "object";
   let ismax = config.maxmin && (config.type === 1 || config.type === 2);
   let titleHTML = config.title
     ? '<div class="layui-layer-title" style="' +
@@ -60,7 +118,7 @@ Class.pt.vessel = function (conType, callback) {
       // 主体
       '<div class="' +
         doms[0] +
-        (" layui-layer-" + state.type[config.type]) +
+        (" layui-layer-" + Store.type[config.type]) +
         ((config.type == 0 || config.type == 2) && !config.shade
           ? " layui-layer-border"
           : "") +
@@ -70,7 +128,7 @@ Class.pt.vessel = function (conType, callback) {
         doms[0] +
         times +
         '" type="' +
-        state.type[config.type] +
+        Store.type[config.type] +
         '" times="' +
         times +
         '" showtime="' +
@@ -115,6 +173,8 @@ Class.pt.vessel = function (conType, callback) {
           if (config.type == 0 && config.icon !== -1) {
             // 加载（加载图标）
             if (config.icon == 16) {
+              console.log("icon=16");
+
               additFaceClass = "layui-icon layui-icon-loading " + animClass;
             }
             return (
@@ -225,11 +285,7 @@ Class.pt.creat = function () {
   let conType = typeof content === "object";
   let body = $("body");
 
-  console.log("走到creat方法");
-
   let setAnim = function (layero) {
-    console.log("qq");
-
     // anim 兼容旧版 shift
     if (config.shift) {
       config.anim = config.shift;
@@ -264,10 +320,12 @@ Class.pt.creat = function () {
       } else if (options.hideOnClose) {
         elemShade.show();
         layero.show();
-        console.log("qqxx");
+
         setAnim(layero);
         setTimeout(function () {
-          elemShade.css({ opacity: elemShade.data(CONSTANTS.SHADE_KEY) });
+          elemShade.css({
+            opacity: elemShade.data(Constants.DATAKEY.SHADE_KEY),
+          });
         }, 10);
       }
     })();
@@ -289,7 +347,7 @@ Class.pt.creat = function () {
 
   switch (config.type) {
     case 0:
-      config.btn = "btn" in config ? config.btn : state.btn[0];
+      config.btn = "btn" in config ? config.btn : Store.btn[0];
       layer.closeAll("dialog");
       break;
     case 2:
@@ -331,8 +389,8 @@ Class.pt.creat = function () {
   // 建立容器
   that
     .vessel(conType, function (html, titleHTML, moveElem) {
-      body.append(html[0]);
-      conType
+      body.append(html[0]); //往body加入了遮罩层
+      conType // 判断content选项是对象
         ? (function () {
             config.type == 2 || config.type == 4
               ? (function () {
@@ -352,7 +410,8 @@ Class.pt.creat = function () {
                 })();
           })()
         : body.append(html[1]);
-      $("#" + doms.MOVE)[0] || body.append((state.moveElem = moveElem));
+
+      $("#" + doms.MOVE)[0] || body.append((Store.moveElem = moveElem));
 
       that.layero = $("#" + doms[0] + times);
       that.shadeo = $("#" + doms.SHADE + times);
@@ -367,13 +426,14 @@ Class.pt.creat = function () {
     opacity: config.shade[0] || config.shade,
     transition: config.shade[2] || "",
   });
-  that.shadeo.data(CONSTANTS.SHADE_KEY, config.shade[0] || config.shade);
+  that.shadeo.data(
+    Constants.DATAKEY.SHADE_KEY,
+    config.shade[0] || config.shade
+  );
 
   config.type == 2 &&
     layer.ie == 6 &&
     that.layero.find("iframe").attr("src", content[0]);
-
-  console.log(config.type);
 
   if (config.type == 4) {
     //tips层，调用tips的方法
@@ -395,12 +455,12 @@ Class.pt.creat = function () {
 
   // 若是固定定位，则跟随 resize 事件来自适应坐标
   if (config.fixed) {
-    if (!state.events.resize[that.index]) {
-      state.events.resize[that.index] = function () {
+    if (!Store.events.resize[that.index]) {
+      Store.events.resize[that.index] = function () {
         that.resize();
       };
       // 此处 resize 事件不会一直叠加，当关闭弹层时会移除该事件
-      win.on("resize", state.events.resize[that.index]);
+      $(window).on("resize", Store.events.resize[that.index]);
     }
   }
 
@@ -409,7 +469,6 @@ Class.pt.creat = function () {
       layer.close(that.index);
     }, config.time);
   that.move().callback();
-  console.log("fff");
 
   setAnim(that.layero);
 
@@ -464,8 +523,8 @@ Class.pt.auto = function (index) {
         if (config.maxHeight > 0 && layero.outerHeight() > config.maxHeight) {
           area[1] = config.maxHeight;
           setHeight("." + doms[5]);
-        } else if (config.fixed && area[1] >= win.height()) {
-          area[1] = win.height();
+        } else if (config.fixed && area[1] >= $(window).height()) {
+          area[1] = $(window).height();
           setHeight("." + doms[5]);
         }
       } else {
@@ -484,8 +543,8 @@ Class.pt.offset = function () {
     layero = that.layero;
   let area = [layero.outerWidth(), layero.outerHeight()];
   let type = typeof config.offset === "object";
-  that.offsetTop = (win.height() - area[1]) / 2;
-  that.offsetLeft = (win.width() - area[0]) / 2;
+  that.offsetTop = ($(window).height() - area[1]) / 2;
+  that.offsetLeft = ($(window).width() - area[0]) / 2;
 
   if (type) {
     that.offsetTop = config.offset[0];
@@ -496,10 +555,10 @@ Class.pt.offset = function () {
       that.offsetTop = 0;
     } else if (config.offset === "r") {
       // 右
-      that.offsetLeft = win.width() - area[0];
+      that.offsetLeft = $(window).width() - area[0];
     } else if (config.offset === "b") {
       // 下
-      that.offsetTop = win.height() - area[1];
+      that.offsetTop = $(window).height() - area[1];
     } else if (config.offset === "l") {
       // 左
       that.offsetLeft = 0;
@@ -509,16 +568,16 @@ Class.pt.offset = function () {
       that.offsetLeft = 0;
     } else if (config.offset === "lb") {
       // 左下
-      that.offsetTop = win.height() - area[1];
+      that.offsetTop = $(window).height() - area[1];
       that.offsetLeft = 0;
     } else if (config.offset === "rt") {
       // 右上
       that.offsetTop = 0;
-      that.offsetLeft = win.width() - area[0];
+      that.offsetLeft = $(window).width() - area[0];
     } else if (config.offset === "rb") {
       // 右下
-      that.offsetTop = win.height() - area[1];
-      that.offsetLeft = win.width() - area[0];
+      that.offsetTop = $(window).height() - area[1];
+      that.offsetLeft = $(window).width() - area[0];
     } else {
       that.offsetTop = config.offset;
     }
@@ -526,18 +585,19 @@ Class.pt.offset = function () {
 
   if (!config.fixed) {
     that.offsetTop = /%$/.test(that.offsetTop)
-      ? (win.height() * parseFloat(that.offsetTop)) / 100
+      ? ($(window).height() * parseFloat(that.offsetTop)) / 100
       : parseFloat(that.offsetTop);
     that.offsetLeft = /%$/.test(that.offsetLeft)
-      ? (win.width() * parseFloat(that.offsetLeft)) / 100
+      ? ($(window).width() * parseFloat(that.offsetLeft)) / 100
       : parseFloat(that.offsetLeft);
-    that.offsetTop += win.scrollTop();
-    that.offsetLeft += win.scrollLeft();
+    that.offsetTop += $(window).scrollTop();
+    that.offsetLeft += $(window).scrollLeft();
   }
 
   // 最小化窗口时的自适应
   if (layero.data("maxminStatus") === "min") {
-    that.offsetTop = win.height() - (layero.find(doms[1]).outerHeight() || 0);
+    that.offsetTop =
+      $(window).height() - (layero.find(doms[1]).outerHeight() || 0);
     that.offsetLeft = layero.css("left");
   }
 
@@ -568,7 +628,7 @@ Class.pt.tips = function () {
   config.tips[1] || tipsG.remove();
 
   goal.autoLeft = function () {
-    if (goal.left + layArea[0] - win.width() > 0) {
+    if (goal.left + layArea[0] - $(window).width() > 0) {
       goal.tipLeft = goal.left + goal.width - layArea[0];
       tipsG.css({ right: 12, left: "auto" });
     } else {
@@ -624,17 +684,18 @@ Class.pt.tips = function () {
 
   /* 8*2为小三角形占据的空间 */
   if (guide === 1) {
-    goal.top - (win.scrollTop() + layArea[1] + 8 * 2) < 0 && goal.where[2]();
+    goal.top - ($(window).scrollTop() + layArea[1] + 8 * 2) < 0 &&
+      goal.where[2]();
   } else if (guide === 2) {
-    win.width() - (goal.left + goal.width + layArea[0] + 8 * 2) > 0 ||
+    $(window).width() - (goal.left + goal.width + layArea[0] + 8 * 2) > 0 ||
       goal.where[3]();
   } else if (guide === 3) {
     goal.top -
-      win.scrollTop() +
+      $(window).scrollTop() +
       goal.height +
       layArea[1] +
       8 * 2 -
-      win.height() >
+      $(window).height() >
       0 && goal.where[0]();
   } else if (guide === 4) {
     layArea[0] + 8 * 2 - goal.left > 0 && goal.where[1]();
@@ -645,8 +706,8 @@ Class.pt.tips = function () {
     "padding-right": config.closeBtn ? "30px" : "",
   });
   layero.css({
-    left: goal.tipLeft - (config.fixed ? win.scrollLeft() : 0),
-    top: goal.tipTop - (config.fixed ? win.scrollTop() : 0),
+    left: goal.tipLeft - (config.fixed ? $(window).scrollLeft() : 0),
+    top: goal.tipTop - (config.fixed ? $(window).scrollTop() : 0),
   });
 };
 
@@ -680,8 +741,8 @@ Class.pt.move = function () {
       ];
 
       othis.data(DATA_NAME[0], dict);
-      state.eventMoveElem = othis;
-      state.moveElem.css("cursor", "move").show();
+      Store.eventMoveElem = othis;
+      Store.moveElem.css("cursor", "move").show();
     }
 
     e.preventDefault();
@@ -700,20 +761,20 @@ Class.pt.move = function () {
       dict.area = [layero.outerWidth(), layero.outerHeight()];
 
       othis.data(DATA_NAME[1], dict);
-      state.eventResizeElem = othis;
-      state.moveElem.css("cursor", "se-resize").show();
+      Store.eventResizeElem = othis;
+      Store.moveElem.css("cursor", "se-resize").show();
     }
 
     e.preventDefault();
   });
 
   // 拖动元素，避免多次调用实例造成事件叠加
-  if (state.docEvent) return that;
+  if (Store.docEvent) return that;
   _DOC
     .on("mousemove", function (e) {
       // 拖拽移动
-      if (state.eventMoveElem) {
-        let dict = state.eventMoveElem.data(DATA_NAME[0]) || {},
+      if (Store.eventMoveElem) {
+        let dict = Store.eventMoveElem.data(DATA_NAME[0]) || {},
           layero = dict.layero,
           config = dict.config;
 
@@ -723,13 +784,13 @@ Class.pt.move = function () {
 
         e.preventDefault();
 
-        dict.stX = fixed ? 0 : win.scrollLeft();
-        dict.stY = fixed ? 0 : win.scrollTop();
+        dict.stX = fixed ? 0 : $(window).scrollLeft();
+        dict.stY = fixed ? 0 : $(window).scrollTop();
 
         // 控制元素不被拖出窗口外
         if (!config.moveOut) {
-          let setRig = win.width() - layero.outerWidth() + dict.stX;
-          let setBot = win.height() - layero.outerHeight() + dict.stY;
+          let setRig = $(window).width() - layero.outerWidth() + dict.stX;
+          let setBot = $(window).height() - layero.outerHeight() + dict.stY;
           X < dict.stX && (X = dict.stX);
           X > setRig && (X = setRig);
           Y < dict.stY && (Y = dict.stY);
@@ -744,8 +805,8 @@ Class.pt.move = function () {
       }
 
       // Resize
-      if (state.eventResizeElem) {
-        let dict = state.eventResizeElem.data(DATA_NAME[1]) || {};
+      if (Store.eventResizeElem) {
+        let dict = Store.eventResizeElem.data(DATA_NAME[1]) || {};
         let config = dict.config;
 
         let X = e.clientX - dict.offset[0];
@@ -763,23 +824,23 @@ Class.pt.move = function () {
       }
     })
     .on("mouseup", function (e) {
-      if (state.eventMoveElem) {
-        let dict = state.eventMoveElem.data(DATA_NAME[0]) || {};
+      if (Store.eventMoveElem) {
+        let dict = Store.eventMoveElem.data(DATA_NAME[0]) || {};
         let config = dict.config;
 
-        state.eventMoveElem.removeData(DATA_NAME[0]);
-        delete state.eventMoveElem;
-        state.moveElem.hide();
+        Store.eventMoveElem.removeData(DATA_NAME[0]);
+        delete Store.eventMoveElem;
+        Store.moveElem.hide();
         config.moveEnd && config.moveEnd(dict.layero);
       }
-      if (state.eventResizeElem) {
-        state.eventResizeElem.removeData(DATA_NAME[1]);
-        delete state.eventResizeElem;
-        state.moveElem.hide();
+      if (Store.eventResizeElem) {
+        Store.eventResizeElem.removeData(DATA_NAME[1]);
+        delete Store.eventResizeElem;
+        Store.moveElem.hide();
       }
     });
 
-  state.docEvent = true; // 已给 document 执行全局事件
+  Store.docEvent = true; // 已给 document 执行全局事件
   return that;
 };
 
@@ -800,89 +861,36 @@ Class.pt.btnLoading = function (btnElem, isLoading) {
       .remove();
   }
 };
-
 Class.pt.callback = function () {
   let that = this,
     layero = that.layero,
     config = that.config;
+
   that.openLayer();
-  if (config.success) {
-    if (config.type == 2) {
-      layero.find("iframe").on("load", function () {
-        config.success(layero, that.index, that);
-      });
-    } else {
+
+  function executeSuccess() {
+    if (config.success) {
       config.success(layero, that.index, that);
     }
   }
-  layer.ie == 6 && that.IE6(layero);
 
-  // 按钮
-  layero
-    .find("." + doms[6])
-    .children("a")
-    .on("click", function () {
-      let btnElem = $(this);
-      let index = btnElem.index();
-      if (btnElem.attr("disabled")) return;
-
-      // 若为异步按钮
-      if (config.btnAsync) {
-        let btnCallback =
-          index === 0
-            ? config.yes || config["btn1"]
-            : config["btn" + (index + 1)];
-        that.loading = function (isLoading) {
-          that.btnLoading(btnElem, isLoading);
-        };
-
-        if (btnCallback) {
-          Util.promiseLikeResolve(
-            btnCallback.call(config, that.index, layero, that)
-          ).then(
-            function (result) {
-              if (result !== false) {
-                layer.close(that.index);
-              }
-            },
-            function (reason) {
-              reason !== undefined &&
-                window.console &&
-                window.console.error("layer error hint: " + reason);
-            }
-          );
-        } else {
-          layer.close(that.index);
-        }
-      } else {
-        // 普通按钮
-        if (index === 0) {
-          if (config.yes) {
-            config.yes(that.index, layero, that);
-          } else if (config["btn1"]) {
-            config["btn1"](that.index, layero, that);
-          } else {
-            layer.close(that.index);
-          }
-        } else {
-          let close =
-            config["btn" + (index + 1)] &&
-            config["btn" + (index + 1)](that.index, layero, that);
-          close === false || layer.close(that.index);
-        }
-      }
-    });
-
-  // 取消
-  function cancel() {
-    let close = config.cancel && config.cancel(that.index, layero, that);
-    close === false || layer.close(that.index);
+  if (config.type === 2) {
+    layero.find("iframe").on("load", executeSuccess);
+  } else {
+    executeSuccess();
   }
 
-  // 右上角关闭回调
-  layero.find("." + doms[7]).on("click", cancel);
+  layer.ie === 6 && that.IE6(layero);
 
-  // 点遮罩关闭
+  // 按钮事件绑定
+  handleButtonEvents(layero, config, that);
+
+  // 右上角关闭回调
+  layero.find("." + doms[7]).on("click", function () {
+    handleCancel(config, that);
+  });
+
+  // 点击遮罩关闭
   if (config.shadeClose) {
     that.shadeo.on("click", function () {
       layer.close(that.index);
@@ -891,26 +899,17 @@ Class.pt.callback = function () {
 
   // 最小化
   layero.find(".layui-layer-min").on("click", function () {
-    let min = config.min && config.min(layero, that.index, that);
-    min === false || layer.min(that.index, config);
+    handleMinimize(config, layero, that);
   });
 
   // 全屏/还原
   layero.find(".layui-layer-max").on("click", function () {
-    if ($(this).hasClass("layui-layer-maxmin")) {
-      layer.restore(that.index);
-      config.restore && config.restore(layero, that.index, that);
-    } else {
-      layer.full(that.index, config);
-      setTimeout(function () {
-        config.full && config.full(layero, that.index, that);
-      }, 100);
-    }
+    handleMaximize(config, layero, that);
   });
 
-  config.end && (state.end[that.index] = config.end);
+  config.end && (Store.end[that.index] = config.end);
   config.beforeEnd &&
-    (state.beforeEnd[that.index] = $.proxy(
+    (Store.beforeEnd[that.index] = $.proxy(
       config.beforeEnd,
       config,
       layero,
@@ -918,6 +917,103 @@ Class.pt.callback = function () {
       that
     ));
 };
+
+// 处理按钮点击事件
+function handleButtonEvents(layero, config, that) {
+  layero
+    .find("." + doms[6])
+    .children("a")
+    .on("click", function () {
+      let btnElem = $(this);
+      let index = btnElem.index();
+
+      if (btnElem.attr("disabled")) return;
+
+      if (config.btnAsync) {
+        handleAsyncButton(btnElem, config, index, that);
+      } else {
+        handleNormalButton(btnElem, config, index, that);
+      }
+    });
+}
+
+// 处理普通按钮
+function handleNormalButton(btnElem, config, index, that) {
+  if (index === 0) {
+    (
+      config.yes ||
+      config["btn1"] ||
+      function () {
+        layer.close(that.index);
+      }
+    )(that.index, that.layero, that);
+  } else {
+    let close =
+      config["btn" + (index + 1)] &&
+      config["btn" + (index + 1)](that.index, that.layero, that);
+
+
+      
+    if (close !== false) {
+      layer.close(that.index);
+    }
+  }
+}
+
+// 处理异步按钮
+function handleAsyncButton(btnElem, config, index, that) {
+  let btnCallback =
+    index === 0 ? config.yes || config["btn1"] : config["btn" + (index + 1)];
+
+  that.loading = function (isLoading) {
+    console.log("我被执行了");
+    that.btnLoading(btnElem, isLoading);
+  };
+
+  if (btnCallback) {
+    Util.promiseLikeResolve(
+      btnCallback.call(config, that.index, that.layero, that)
+    ).then(
+      function (result) {
+        if (result !== false) {
+          layer.close(that.index);
+        }
+      },
+      function (reason) {
+        reason !== undefined && console.error("layer error hint: " + reason);
+      }
+    );
+  } else {
+    layer.close(that.index);
+  }
+}
+
+// 处理取消按钮
+function handleCancel(config, that) {
+  let close = config.cancel && config.cancel(that.index, that.layero, that);
+  close === false || layer.close(that.index);
+}
+
+// 处理最小化按钮
+function handleMinimize(config, layero, that) {
+  let min = config.min && config.min(layero, that.index, that);
+  min === false || layer.min(that.index, config);
+}
+
+// 处理最大化按钮
+function handleMaximize(config, layero, that) {
+  let maxButton = layero.find(".layui-layer-max");
+
+  if (maxButton.hasClass("layui-layer-maxmin")) {
+    layer.restore(that.index);
+    config.restore && config.restore(layero, that.index, that);
+  } else {
+    layer.full(that.index, config);
+    setTimeout(function () {
+      config.full && config.full(layero, that.index, that);
+    }, 100);
+  }
+}
 
 Class.pt.IE6 = function (layero) {
   // 隐藏select

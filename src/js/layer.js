@@ -1,55 +1,33 @@
 import $ from "jquery";
-import Util, { detectIE } from "./util";
-import { win, doms, state, CONSTANTS } from "./constants";
-import { close, closeAll } from "./methods";
+import Util from "./util";
+import Constants, { MAP } from "./constants/index";
+import { shared } from "./shared";
+// 测试用的类，改造完毕后就删除了
+import Class from "./class";
 import Container from "./container";
+import Closer from "./Closer";
 
 // 默认内置方法。
 export default {
-  v: "3.7.0",
-  // 判断ie
-  ie: detectIE(),
-
-  // 配置对象的临时缓存
-  cache: {},
-
+  v: Constants.VERSION,
+  //获取最新弹出层的层叠顺序
+  zIndex: shared.zIndex,
   // 索引层
-  index: 0,
-  // 路径
-  path: null,
+  index: shared.index,
   // 设置全局默认配置
-  config(options, fn) {
-    options = options || {};
-
-    // 把传递进来的参数和默认配置state.config里面的参数合并后赋值给state.config和this.cache
-    this.cache = state.config = $.extend({}, state.config, options);
-    // console.log(this.cache,state.config);
-
-    // 从默认参数state.config里取path如果没有就取layer对象上的path属性赋值给this.path
-    this.path = state.config.path || this.path;
-
-    // console.log(this.path, state.config.path);
-
-    // console.log(options.extend);
+  config(options = {}) {
+    shared.config = $.extend({}, shared.config, options);
 
     typeof options.extend === "string" && (options.extend = [options.extend]);
 
-    // 如果设置了路径，则加载样式,这里不需要这样
-    // if (state.config.path) this.ready();
-
     if (!options.extend) return this; //如果选项不存在extend属性，就直接return
-
-    // 加载 css
-    // isLayui
-    //   ? layui.addcss("modules/layer/" + options.extend)
-    //   : state.link("css/" + options.extend);
 
     return this;
   },
-
   // 核心方法
   open(options) {
-    return new Container(options).index;
+    return new Container(options, this).index;
+    // return new Class(options).index;
   },
 
   // 各种快捷引用
@@ -78,7 +56,7 @@ export default {
       $.extend(
         {
           content: content,
-          btn: state.btn,
+          btn: shared.btn,
           yes: yes,
           btn2: cancel,
         },
@@ -89,10 +67,14 @@ export default {
 
   msg(content, options, end) {
     // 最常用提示层
-    let type = typeof options === "function",
-      rskin = state.config.skin;
-    let skin = (rskin ? rskin + " " + rskin + "-msg" : "") || "layui-layer-msg";
-    let anim = doms.anim.length - 1;
+    let type = typeof options === "function";
+    // 源皮肤
+    let rskin = shared.config.skin;
+
+    const skin = rskin ? `${rskin} ${rskin}-msg` : "layui-layer-msg";
+
+    let anim = Constants.CLASSES.layerAnim5;
+
     if (type) end = options;
     return this.open(
       $.extend(
@@ -108,7 +90,7 @@ export default {
           end: end,
           removeFocus: false,
         },
-        type && !state.config.skin
+        type && !shared.config.skin
           ? {
               skin: skin + " layui-layer-hui",
               anim: anim,
@@ -117,7 +99,7 @@ export default {
               options = options || {};
               if (
                 options.icon === -1 ||
-                (options.icon === undefined && !state.config.skin)
+                (options.icon === undefined && !shared.config.skin)
               ) {
                 options.skin = skin + " " + (options.skin || "layui-layer-hui");
               }
@@ -125,6 +107,72 @@ export default {
             })()
       )
     );
+  },
+
+  style(index, options, limit) {
+    let layero = Util.getLayeroByIndex(index);
+
+    let contentElem = layero.find(`.${Constants.CLASSES.layerContent}`);
+    let type = layero.attr("type");
+
+    let titHeight =
+      layero.find(`.${Constants.CLASSES.layerTitle}`).outerHeight() || 0;
+
+    let btnHeight =
+      layero.find(`.${Constants.CLASSES.layerBtn}`).outerHeight() || 0;
+
+    // loading 和 tips 层不允许更改
+    if (
+      type === MAP.TYPE_NAME[MAP.TYPE.LOADING] ||
+      type === MAP.TYPE_NAME[MAP.TYPE.TIPS]
+    ) {
+      return;
+    }
+
+    if (!limit) {
+      if (parseFloat(options.width) <= 260) {
+        options.width = 260;
+      }
+
+      if (parseFloat(options.height) - titHeight - btnHeight <= 64) {
+        options.height = 64 + titHeight + btnHeight;
+      }
+    }
+    layero.css(options);
+
+    btnHeight =
+      layero.find(`.${Constants.CLASSES.layerBtn}`).outerHeight() || 0;
+
+    if (type === MAP.TYPE_NAME[MAP.TYPE.IFRAME]) {
+      layero.find("iframe").css({
+        height:
+          (typeof options.height === "number"
+            ? options.height
+            : layero.height()) -
+          titHeight -
+          btnHeight,
+      });
+    } else {
+      contentElem.css({
+        height:
+          (typeof options.height === "number"
+            ? options.height
+            : layero.height()) -
+          titHeight -
+          btnHeight -
+          parseFloat(contentElem.css("padding-top")) -
+          parseFloat(contentElem.css("padding-bottom")),
+      });
+    }
+  },
+
+  // 给层设置标题
+  title(name, index) {
+    const $title = $(
+      `#${Constants.CLASSES.layuiLayer}${index || Layer.index}`
+    ).find(`.${Constants.CLASSES.layerTitle}`);
+
+    $title.html(name);
   },
 
   load(icon, options) {
@@ -160,11 +208,61 @@ export default {
       )
     );
   },
+  close(index, callback) {
+    new Closer(index, callback).execute();
+  },
+  closeAll(type, callback) {
+    let that = this;
 
+    if (typeof type === "function") {
+      callback = type;
+      type = null;
+    }
+
+    let domsElem = $(`.${Constants.CLASSES.layuiLayer}`);
+
+    $.each(domsElem, function (_index) {
+      let othis = $(this);
+      let is = type ? othis.attr("type") === type : 1;
+      is &&
+        that.close(
+          othis.attr("times"),
+          _index === domsElem.length - 1 ? callback : null
+        );
+      is = null;
+    });
+    if (domsElem.length === 0) typeof callback === "function" && callback();
+  },
+  closeLast(type, callback) {
+    const layerIndexList = [];
+    const isArrayType = Array.isArray(type);
+    const selector =
+      typeof type === "string"
+        ? `.layui-layer-${type}`
+        : `.${Constants.CLASSES.layuiLayer}`;
+
+    $(selector).each(function (i, el) {
+      const layero = $(el);
+      const isHidden = layero.css("display") === "none";
+      const isInvalidType = isArrayType && !type.includes(layero.attr("type"));
+
+      if (isHidden || isInvalidType) {
+        return true; // 跳过当前循环
+      }
+
+      const layerIndex = Number(layero.attr("times"));
+      layerIndexList.push(layerIndex);
+    });
+
+    if (layerIndexList.length > 0) {
+      const layerIndexMax = Math.max.apply(null, layerIndexList);
+      this.close(layerIndexMax, callback);
+    }
+  },
   // 获取子 iframe 的 DOM
   getChildFrame(selector, index) {
-    index = index || $("." + doms[4]).attr("times");
-    return $("#" + doms[0] + index)
+    index = index || $(`.${Constants.CLASSES.layerIFrame}`).attr("times");
+    return Util.getLayeroByIndex(index)
       .find("iframe")
       .contents()
       .find(selector);
@@ -173,7 +271,7 @@ export default {
   // 得到当前 iframe 层的索引，子 iframe 时使用
   getFrameIndex(name) {
     return $("#" + name)
-      .parents("." + doms[4])
+      .parents(`.${Constants.CLASSES.layerIFrame}`)
       .attr("times");
   },
 
@@ -181,86 +279,44 @@ export default {
   iframeAuto(index) {
     if (!index) return;
     let heg = this.getChildFrame("html", index).outerHeight();
-    let layero = $("#" + doms[0] + index);
-    let titHeight = layero.find(doms[1]).outerHeight() || 0;
-    let btnHeight = layero.find("." + doms[6]).outerHeight() || 0;
+
+    let layero = Util.getLayeroByIndex(index);
+
+    // .layui-layer-title
+    let titHeight =
+      layero.find(`.${Constants.CLASSES.layerTitle}`).outerHeight() || 0;
+    // layui-layer-btn
+    let btnHeight =
+      layero.find(`.${Constants.CLASSES.layerBtn}`).outerHeight() || 0;
     layero.css({ height: heg + titHeight + btnHeight });
     layero.find("iframe").css({ height: heg });
   },
 
   // 重置 iframe url
   iframeSrc(index, url) {
-    $("#" + doms[0] + index)
-      .find("iframe")
-      .attr("src", url);
-  },
-
-  // 设定层的样式
-  style(index, options, limit) {
-    let layero = $("#" + doms[0] + index);
-    let contentElem = layero.find(".layui-layer-content");
-    let type = layero.attr("type");
-    let titHeight = layero.find(doms[1]).outerHeight() || 0;
-    let btnHeight = layero.find("." + doms[6]).outerHeight() || 0;
-    let minLeft = layero.attr("minLeft");
-
-    // loading 和 tips 层不允许更改
-    if (type === state.type[3] || type === state.type[4]) {
-      return;
-    }
-
-    if (!limit) {
-      if (parseFloat(options.width) <= 260) {
-        options.width = 260;
-      }
-
-      if (parseFloat(options.height) - titHeight - btnHeight <= 64) {
-        options.height = 64 + titHeight + btnHeight;
-      }
-    }
-    layero.css(options);
-    btnHeight = layero.find("." + doms[6]).outerHeight() || 0;
-
-    if (type === state.type[2]) {
-      layero.find("iframe").css({
-        height:
-          (typeof options.height === "number"
-            ? options.height
-            : layero.height()) -
-          titHeight -
-          btnHeight,
-      });
-    } else {
-      contentElem.css({
-        height:
-          (typeof options.height === "number"
-            ? options.height
-            : layero.height()) -
-          titHeight -
-          btnHeight -
-          parseFloat(contentElem.css("padding-top")) -
-          parseFloat(contentElem.css("padding-bottom")),
-      });
-    }
+    Util.getLayeroByIndex(index).find("iframe").attr("src", url);
   },
 
   // 最小化
   min(index, options) {
-    let layero = $("#" + doms[0] + index);
-    let maxminStatus = layero.data("maxminStatus");
+    let layero = Util.getLayeroByIndex(index);
+    let maxminStatus = layero.data(Constants.DATAKEY.MAX_MIN_STATUS);
 
     if (maxminStatus === "min") return; // 当前的状态是否已经是最小化
     if (maxminStatus === "max") this.restore(index); // 若当前为最大化，则先还原后再最小化
 
-    layero.data("maxminStatus", "min");
+    layero.data(Constants.DATAKEY.MAX_MIN_STATUS, "min");
     options = options || layero.data("config") || {};
 
-    let shadeo = $("#" + doms.SHADE + index);
+    let shadeo = $(`#${Constants.CLASSES.shade}${index}`);
     let elemMin = layero.find(".layui-layer-min");
-    let titHeight = layero.find(doms[1]).outerHeight() || 0;
+
+    //.layui-layer-title
+    let titHeight =
+      layero.find(`.${Constants.CLASSES.layerTitle}`).outerHeight() || 0;
     let minLeft = layero.attr("minLeft"); // 最小化时的横坐标
     let hasMinLeft = typeof minLeft === "string"; // 是否已经赋值过最小化坐标
-    let left = hasMinLeft ? minLeft : 181 * state.minStackIndex + "px";
+    let left = hasMinLeft ? minLeft : 181 * shared.minStackIndex + "px";
     let position = layero.css("position");
     let minWidth = 180; // 最小化时的宽度
     let settings = {
@@ -273,19 +329,19 @@ export default {
     Util.record(layero); // 记录当前尺寸、坐标，用于还原
 
     // 简易最小化补位
-    if (state.minStackArr.length > 0) {
-      left = state.minStackArr[0];
-      state.minStackArr.shift();
+    if (shared.minStackArr.length > 0) {
+      left = shared.minStackArr[0];
+      shared.minStackArr.shift();
     }
 
     // left 是否超出边界
-    if (parseFloat(left) + minWidth > win.width()) {
+    if (parseFloat(left) + minWidth > $(window).width()) {
       left =
-        win.width() -
+        $(window).width() -
         minWidth -
         (function () {
-          state.minStackArr.edgeIndex = state.minStackArr.edgeIndex || 0;
-          return (state.minStackArr.edgeIndex += 3);
+          shared.minStackArr.edgeIndex = shared.minStackArr.edgeIndex || 0;
+          return (shared.minStackArr.edgeIndex += 3);
         })();
       if (left < 0) left = 0;
     }
@@ -293,8 +349,8 @@ export default {
     // 是否堆叠在左下角
     if (options.minStack) {
       settings.left = left;
-      settings.top = win.height() - titHeight;
-      hasMinLeft || state.minStackIndex++; // 若未赋值过最小化坐标，则最小化操作索引自增
+      settings.top = $(window).height() - titHeight;
+      hasMinLeft || shared.minStackIndex++; // 若未赋值过最小化坐标，则最小化操作索引自增
       layero.attr("minLeft", left);
     }
 
@@ -302,7 +358,9 @@ export default {
     this.style(index, settings, true);
 
     elemMin.hide();
-    layero.attr("type") === "page" && layero.find(doms[4]).hide();
+    // layui-layer-iframe
+    layero.attr("type") === "page" &&
+      layero.find(Constants.CLASSES.layerIFrame).hide();
     Util.restScrollbar(index);
 
     // 隐藏遮罩
@@ -311,15 +369,17 @@ export default {
 
   // 还原
   restore(index) {
-    let layero = $("#" + doms[0] + index);
-    let shadeo = $("#" + doms.SHADE + index);
-    let contentElem = layero.find(".layui-layer-content");
+    let layero = Util.getLayeroByIndex(index);
+    let shadeo = Util.getShadeoByIndex(index);
+    let contentElem = layero.find(`.${Constants.CLASSES.layerContent}`);
     let area = layero.attr("area").split(",");
     let type = layero.attr("type");
     let options = layero.data("config") || {};
-    let contentRecordHeight = contentElem.data(CONSTANTS.RECORD_HEIGHT_KEY);
+    let contentRecordHeight = contentElem.data(
+      Constants.DATAKEY.RECORD_HEIGHT_KEY
+    );
 
-    layero.removeData("maxminStatus"); // 移除最大最小状态
+    layero.removeData(Constants.DATAKEY.MAX_MIN_STATUS); // 移除最大最小状态
 
     // 恢复原来尺寸
     this.style(
@@ -337,36 +397,40 @@ export default {
 
     layero.find(".layui-layer-max").removeClass("layui-layer-maxmin");
     layero.find(".layui-layer-min").show();
-    type === "page" && layero.find(doms[4]).show();
+    //layui-layer-iframe
+    type === "page" && layero.find(Constants.CLASSES.layerIFrame).show();
 
     // 恢复页面滚动条弹层打开时的状态
     options.scrollbar ? Util.restScrollbar(index) : Util.setScrollbar(index);
 
     // #1604
     if (contentRecordHeight !== undefined) {
-      contentElem.removeData(CONSTANTS.RECORD_HEIGHT_KEY);
+      contentElem.removeData(Constants.DATAKEY.RECORD_HEIGHT_KEY);
+
       let contentRecordHeightElem =
-        type === state.type[2] ? contentElem.children("iframe") : contentElem;
+        type === MAP.TYPE_NAME[MAP.TYPE.IFRAME]
+          ? contentElem.children("iframe")
+          : contentElem;
       contentRecordHeightElem.css({ height: contentRecordHeight });
     }
 
     // 恢复遮罩
     shadeo.show();
-    // state.events.resize[index](); // ?
+    // shared.events.resize[index](); // ?
   },
 
   // 全屏（最大化）
   full(index) {
-    let layero = $("#" + doms[0] + index);
-    let maxminStatus = layero.data("maxminStatus");
+    let layero = Util.getLayeroByIndex(index);
+    let maxminStatus = layero.data(Constants.DATAKEY.MAX_MIN_STATUS);
 
     if (maxminStatus === "max") return; // 检查当前的状态是否已经是最大化
     if (maxminStatus === "min") this.restore(index); // 若当前为最小化，则先还原后再最大化
 
-    layero.data("maxminStatus", "max");
+    layero.data(Constants.DATAKEY.MAX_MIN_STATUS, "max");
     Util.record(layero); // 记录当前尺寸、坐标
 
-    if (!doms.html.attr("layer-full")) {
+    if (!$("html").attr("layer-full")) {
       Util.setScrollbar(index);
     }
 
@@ -375,8 +439,8 @@ export default {
       this.style(
         index,
         {
-          top: isfix ? 0 : win.scrollTop(),
-          left: isfix ? 0 : win.scrollLeft(),
+          top: isfix ? 0 : $(window).scrollTop(),
+          left: isfix ? 0 : $(window).scrollLeft(),
           width: "100%",
           height: "100%",
         },
@@ -384,36 +448,6 @@ export default {
       );
       layero.find(".layui-layer-min").hide();
     }, 100);
-  },
-
-  // 改变 title
-  title(name, index) {
-    let title = $("#" + doms[0] + (index || this.index)).find(doms[1]);
-    title.html(name);
-  },
-
-  // 关闭 layer 总方法
-  close,
-  closeAll,
-
-  // 根据弹层类型关闭最近打开的层
-  closeLast(type, callback) {
-    let layerIndexList = [];
-    let isArrayType = $.isArray(type);
-    $(typeof type === "string" ? ".layui-layer-" + type : ".layui-layer").each(
-      function (i, el) {
-        let layero = $(el);
-        let shouldSkip =
-          (isArrayType && type.indexOf(layero.attr("type")) === -1) ||
-          layero.css("display") === "none";
-        if (shouldSkip) return true;
-        layerIndexList.push(Number(layero.attr("times")));
-      }
-    );
-    if (layerIndexList.length > 0) {
-      let layerIndexMax = Math.max.apply(null, layerIndexList);
-      this.close(layerIndexMax, callback);
-    }
   },
 
   // 仿系统 prompt
@@ -458,8 +492,8 @@ export default {
           type: 1,
           btn: ["确定", "取消"],
           content: content,
-          skin: "layui-layer-prompt" + Util.skin("prompt", this.cache),
-          maxWidth: win.width(),
+          skin: "layui-layer-prompt" + Util.skin("prompt", shared.config),
+          maxWidth: $(window).width(),
           success(layero) {
             prompt = layero.find(".layui-layer-input");
             prompt.val(options.value || "").focus();
@@ -484,6 +518,16 @@ export default {
     );
   },
 
+  // 窗口置顶
+  setTop(layero) {
+    shared.zIndex = parseInt(layero[0].style.zIndex);
+    layero.on("mousedown", function () {
+      shared.zIndex++;
+      layero.css("z-index", shared.zIndex + 1);
+    });
+    return shared.zIndex;
+  },
+
   // tab 层
   tab(options) {
     options = options || {};
@@ -498,7 +542,7 @@ export default {
       $.extend(
         {
           type: 1,
-          skin: "layui-layer-tab" + Util.skin("tab", this.cache),
+          skin: "layui-layer-tab" + Util.skin("tab", shared.config),
           resize: false,
           title: (function () {
             let len = tab.length,
@@ -853,7 +897,7 @@ export default {
               moveOut: true,
               anim: 5,
               isOutAnim: false,
-              skin: "layui-layer-photos" + Util.skin("photos", _that.cache),
+              skin: "layui-layer-photos" + Util.skin("photos", shared.config),
               content:
                 '<div class="layer-layer-photos-main">' +
                 '<img src="' +

@@ -1,0 +1,6 @@
+export default {
+  SHADE_KEY: "LAYUI-LAYER-SHADE-KEY",
+  RECORD_HEIGHT_KEY: "LAYUI_LAYER_CONTENT_RECORD_HEIGHT",
+  // 状态
+  MAX_MIN_STATUS: "maxminStatus",
+};
