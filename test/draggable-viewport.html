@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>仅仅只允许在视口范围内拖动代码实例</title>
+    <style>
+      .resizable-draggable {
+        width: 200px;
+        height: 150px;
+        background-color: lightblue;
+        border: 2px solid #000;
+        position: absolute;
+        top: 100px;
+        left: 100px;
+        display: flex;
+        flex-direction: column;
+        user-select: none;
+      }
+      .resizable-draggable .header {
+        border-bottom: 1px solid red;
+        padding: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="resizable-draggable">
+      <div class="header">this is title</div>
+      <div>body</div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script>
+      const element = document.querySelector(".resizable-draggable"); // 要拖动的元素
+
+      let offsetX, offsetY;
+
+      element.addEventListener("mousedown", function (e) {
+        // 计算鼠标点击位置和元素左上角的偏移量
+        offsetX = e.clientX - element.getBoundingClientRect().left;
+        offsetY = e.clientY - element.getBoundingClientRect().top;
+
+        document.addEventListener("mousemove", moveElement);
+        document.addEventListener("mouseup", function () {
+          document.removeEventListener("mousemove", moveElement);
+        });
+      });
+
+      function moveElement(e) {
+        // 获取当前窗口的宽高
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+
+        // 获取元素的宽高
+        const elementRect = element.getBoundingClientRect();
+        const elementWidth = elementRect.width;
+        const elementHeight = elementRect.height;
+
+        // 计算元素的新位置
+        let newLeft = e.clientX - offsetX;
+        let newTop = e.clientY - offsetY;
+
+        // 边缘检测，限制元素不超过屏幕边界
+        if (newLeft < 0) newLeft = 0; // 左边界
+        if (newTop < 0) newTop = 0; // 上边界
+        if (newLeft + elementWidth > windowWidth)
+          newLeft = windowWidth - elementWidth; // 右边界
+        if (newTop + elementHeight > windowHeight)
+          newTop = windowHeight - elementHeight; // 下边界
+
+        // 更新元素位置
+        element.style.left = newLeft + "px";
+        element.style.top = newTop + "px";
+      }
+    </script>
+  </body>
+</html>

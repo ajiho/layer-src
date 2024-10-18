@@ -1114,6 +1114,54 @@
     };
   };
 
+  /** Returns the object type of the given payload */
+  function getType(payload) {
+      return Object.prototype.toString.call(payload).slice(8, -1);
+  }
+
+  /** Returns whether the payload is an array */
+  function isArray(payload) {
+      return getType(payload) === 'Array';
+  }
+
+  /**
+   * Returns whether the payload is a plain JavaScript object (excluding special classes or objects
+   * with other prototypes)
+   */
+  function isPlainObject(payload) {
+      if (getType(payload) !== 'Object')
+          return false;
+      const prototype = Object.getPrototypeOf(payload);
+      return !!prototype && prototype.constructor === Object && prototype === Object.prototype;
+  }
+
+  /** Returns whether the payload is a string */
+  function isString(payload) {
+      return getType(payload) === 'String';
+  }
+
+  /** Returns whether the payload is a function (regular or async) */
+  function isFunction(payload) {
+      return typeof payload === 'function';
+  }
+
+  /**
+   * Returns whether the payload is a number (but not NaN)
+   *
+   * This will return `false` for `NaN`!!
+   */
+  function isNumber(payload) {
+      return getType(payload) === 'Number' && !isNaN(payload);
+  }
+
+  /**
+   * Returns whether the payload is a plain JavaScript object (excluding special classes or objects
+   * with other prototypes)
+   */
+  function isObject(payload) {
+      return isPlainObject(payload);
+  }
+
   class HTMLGenerator {
     // 索引
     constructor(config, index) {
@@ -1190,7 +1238,7 @@
       //次数
       this.config.time,
       //时间
-      typeof this.config.content === "object" ? "object" : "string",
+      isObject(this.config.content) ? "object" : "string",
       //类型
       this.zIndex, this.config.area[0], this.config.area[1], this.config.fixed ? "fixed;" : "absolute;");
     }
@@ -1204,7 +1252,7 @@
         const titleText = titleType ? this.config.title[0] : this.config.title;
         titleHTML = Util.sprintf(Constants.HTML.title, titleStyle, titleText);
       }
-      return typeof this.config.content === "object" && this.config.type != MAP.TYPE.IFRAME ? "" : titleHTML;
+      return isObject(this.config.content) && this.config.type != MAP.TYPE.IFRAME ? "" : titleHTML;
     }
     #getContentBeginHTML() {
       // 是信息框且设置了图标就添加一点边距
@@ -1235,7 +1283,7 @@
       const isPageType = this.config.type === MAP.TYPE.PAGE;
 
       // 如果是 PAGE 类型并且 conType 存在，返回空字符串
-      if (isPageType && typeof this.config.content === "object") {
+      if (isPageType && isObject(this.config.content)) {
         return "";
       }
 
@@ -1286,7 +1334,8 @@
       const buttonHtml = [];
 
       // 如果 `config.btn` 是字符串，将其转换为数组
-      if (typeof this.config.btn === "string") {
+
+      if (isString(this.config.btn)) {
         this.config.btn = [this.config.btn];
       }
       console.log(this.config.btn);
@@ -1665,7 +1714,7 @@
       console.log(this.config.content);
 
       // 判断content选项是对象
-      if (typeof this.config.content === "object") {
+      if (isObject(this.config.content)) {
         if (this.config.type == MAP.TYPE.IFRAME || this.config.type == MAP.TYPE.TIPS) {
           $$1("body").append(html);
         } else {
@@ -1817,7 +1866,8 @@
         [MAP.TYPE.IFRAME]: () => {
           // console.log("www");
           // 转换成数组
-          this.config.content = Array.isArray(this.config.content) ? this.config.content : [this.config.content || "", "auto"];
+
+          this.config.content = isArray(this.config.content) ? this.config.content : [this.config.content || "", "auto"];
 
           //重新赋值的操作
 
@@ -1833,11 +1883,11 @@
         },
         // tips
         [MAP.TYPE.TIPS]: () => {
-          this.config.content = Array.isArray(this.config.content) ? this.config.content : [this.config.content, "body"];
+          this.config.content = isArray(this.config.content) ? this.config.content : [this.config.content, "body"];
           this.config.follow = this.config.content[1];
           this.config.content = `${this.config.content[0]}${Constants.HTML.tipsG}`;
           delete this.config.title;
-          this.config.tips = Array.isArray(this.config.tips) ? this.config.tips : [this.config.tips, true];
+          this.config.tips = isArray(this.config.tips) ? this.config.tips : [this.config.tips, true];
           //是否允许同时存在多个 tips 层，即不销毁上一个 tips
           this.config.tipsMore || this.layer.closeAll(MAP.TYPE_NAME[MAP.TYPE.TIPS]);
         }
@@ -1850,7 +1900,7 @@
     // 初始化area属性
     initAreaOption() {
       // 初始化 area 属性
-      if (typeof this.config.area === "string") {
+      if (isString(this.config.area)) {
         this.config.area = this.config.area === "auto" ? ["", ""] : [this.config.area, ""];
       }
     }
@@ -2022,7 +2072,7 @@
         config = that.config,
         layero = that.layero;
       let area = [layero.outerWidth(), layero.outerHeight()];
-      let type = typeof config.offset === "object";
+      let type = isArray(config.offset);
       that.offsetTop = ($$1(window).height() - area[1]) / 2;
       that.offsetLeft = ($$1(window).width() - area[0]) / 2;
       if (type) {
@@ -2080,65 +2130,6 @@
         left: that.offsetLeft
       });
     }
-    offset2() {
-      const {
-        config,
-        layero
-      } = this;
-      const windowHeight = $$1(window).height();
-      const windowWidth = $$1(window).width();
-      let offsetTop = (windowHeight - this.layeroouterHeight) / 2;
-      let offsetLeft = (windowWidth - this.layeroOuterWidth) / 2;
-      const applyOffset = (top, left) => {
-        offsetTop = typeof top !== "undefined" ? top : offsetTop;
-        offsetLeft = typeof left !== "undefined" ? left : offsetLeft;
-      };
-
-      // 检查偏移量是否为数组（自定义定位）
-      if (Array.isArray(config.offset)) {
-        applyOffset(config.offset[0], config.offset[1]);
-      } else if (config.offset !== "auto") {
-        const offsetMap = {
-          t: () => applyOffset(0),
-          r: () => applyOffset(undefined, windowWidth - this.layeroOuterWidth),
-          b: () => applyOffset(windowHeight - this.layeroouterHeight),
-          l: () => applyOffset(undefined, 0),
-          lt: () => applyOffset(0, 0),
-          lb: () => applyOffset(windowHeight - this.layeroouterHeight, 0),
-          rt: () => applyOffset(0, windowWidth - this.layeroOuterWidth),
-          rb: () => applyOffset(windowHeight - this.layeroouterHeight, windowWidth - this.layeroOuterWidth)
-        };
-
-        // 应用地图的偏移量，或使用自定义值
-        if (offsetMap[config.offset]) {
-          offsetMap[config.offset]();
-        } else {
-          offsetTop = config.offset;
-        }
-      }
-
-      // 处理非固定定位并转换百分比值
-      const calculateOffset = (value, dimension, scroll) => {
-        return /%$/.test(value) ? dimension * parseFloat(value) / 100 + scroll : parseFloat(value);
-      };
-      if (!config.fixed) {
-        offsetTop = calculateOffset(offsetTop, windowHeight, $$1(window).scrollTop());
-        offsetLeft = calculateOffset(offsetLeft, windowWidth, $$1(window).scrollLeft());
-      }
-
-      // 处理最小化的窗口调整
-      if (layero.data("maxminStatus") === "min") {
-        const titleOuterHeight = layero.find(`.${Constants.CLASSES.layerTitle}`).outerHeight() || 0;
-        offsetTop = windowHeight - titleOuterHeight;
-        offsetLeft = layero.css("left");
-      }
-
-      // 设置最终的CSS定位
-      layero.css({
-        top: offsetTop,
-        left: offsetLeft
-      });
-    }
   }
 
   class Closer {
@@ -2160,7 +2151,7 @@
     // 执行关闭操作
     execute() {
       if (!this.layero[0]) return;
-      if (!this.hideOnClose && typeof shared.beforeEnd[this.index] === "function") {
+      if (!this.hideOnClose && isFunction(shared.beforeEnd[this.index])) {
         Util.promiseLikeResolve(shared.beforeEnd[this.index]()).then(result => {
           if (result !== false) {
             delete shared.beforeEnd[this.index];
@@ -2232,7 +2223,7 @@
           this.layero[0].innerHTML = "";
           this.layero.remove();
         }
-        typeof shared.end[this.index] === "function" && shared.end[this.index]();
+        isFunction(shared.end[this.index]) && shared.end[this.index]();
         delete shared.end[this.index];
 
         // 移除 resize 事件
@@ -2262,7 +2253,9 @@
     // 设置全局默认配置
     config(options = {}) {
       shared.config = $$1.extend({}, shared.config, options);
-      typeof options.extend === "string" && (options.extend = [options.extend]);
+      if (isString(options.extend)) {
+        options.extend = [options.extend];
+      }
       if (!options.extend) return this; //如果选项不存在extend属性，就直接return
 
       return this;
@@ -2274,7 +2267,7 @@
     },
     // 各种快捷引用
     alert(content, options, yes) {
-      let type = typeof options === "function";
+      let type = isFunction(options);
       if (type) yes = options;
       return this.open($$1.extend({
         content: content,
@@ -2282,7 +2275,7 @@
       }, type ? {} : options));
     },
     confirm(content, options, yes, cancel) {
-      let type = typeof options === "function";
+      let type = isFunction(options);
       if (type) {
         cancel = yes;
         yes = options;
@@ -2296,7 +2289,8 @@
     },
     msg(content, options, end) {
       // 最常用提示层
-      let type = typeof options === "function";
+      let type = isFunction(options);
+
       // 源皮肤
       let rskin = shared.config.skin;
       const skin = rskin ? `${rskin} ${rskin}-msg` : "layui-layer-msg";
@@ -2347,11 +2341,11 @@
       btnHeight = layero.find(`.${Constants.CLASSES.layerBtn}`).outerHeight() || 0;
       if (type === MAP.TYPE_NAME[MAP.TYPE.IFRAME]) {
         layero.find("iframe").css({
-          height: (typeof options.height === "number" ? options.height : layero.height()) - titHeight - btnHeight
+          height: (isNumber(options.height) ? options.height : layero.height()) - titHeight - btnHeight
         });
       } else {
         contentElem.css({
-          height: (typeof options.height === "number" ? options.height : layero.height()) - titHeight - btnHeight - parseFloat(contentElem.css("padding-top")) - parseFloat(contentElem.css("padding-bottom"))
+          height: (isNumber(options.height) ? options.height : layero.height()) - titHeight - btnHeight - parseFloat(contentElem.css("padding-top")) - parseFloat(contentElem.css("padding-bottom"))
         });
       }
     },
@@ -2387,7 +2381,7 @@
     },
     closeAll(type, callback) {
       let that = this;
-      if (typeof type === "function") {
+      if (isFunction(type)) {
         callback = type;
         type = null;
       }
@@ -2398,12 +2392,12 @@
         is && that.close(othis.attr("times"), _index === domsElem.length - 1 ? callback : null);
         is = null;
       });
-      if (domsElem.length === 0) typeof callback === "function" && callback();
+      if (domsElem.length === 0) isFunction(callback) && callback();
     },
     closeLast(type, callback) {
       const layerIndexList = [];
       const isArrayType = Array.isArray(type);
-      const selector = typeof type === "string" ? `.layui-layer-${type}` : `.${Constants.CLASSES.layuiLayer}`;
+      const selector = isString(type) ? `.layui-layer-${type}` : `.${Constants.CLASSES.layuiLayer}`;
       $$1(selector).each(function (i, el) {
         const layero = $$1(el);
         const isHidden = layero.css("display") === "none";
@@ -2464,7 +2458,9 @@
       //.layui-layer-title
       let titHeight = layero.find(`.${Constants.CLASSES.layerTitle}`).outerHeight() || 0;
       let minLeft = layero.attr("minLeft"); // 最小化时的横坐标
-      let hasMinLeft = typeof minLeft === "string"; // 是否已经赋值过最小化坐标
+
+      // 是否已经赋值过最小化坐标
+      let hasMinLeft = isString(minLeft);
       let left = hasMinLeft ? minLeft : 181 * shared.minStackIndex + "px";
       let position = layero.css("position");
       let minWidth = 180; // 最小化时的宽度
@@ -2579,7 +2575,7 @@
       let style = "",
         placeholder = "";
       options = options || {};
-      if (typeof options === "function") yes = options;
+      if (isFunction(options)) yes = options;
       if (options.area) {
         let area = options.area;
         style = 'style="width: ' + area[0] + "; height: " + area[1] + ';"';
@@ -2603,7 +2599,7 @@
         success(layero) {
           prompt = layero.find(".layui-layer-input");
           prompt.val(options.value || "").focus();
-          typeof success === "function" && success(layero);
+          isFunction(success) && success(layero);
         },
         resize: false,
         yes(index) {
@@ -2671,9 +2667,9 @@
               index = othis.index();
             othis.addClass(THIS).siblings().removeClass(THIS);
             main.eq(index).show().siblings().hide();
-            typeof options.change === "function" && options.change(index);
+            isFunction(options.change) && options.change(index);
           });
-          typeof success === "function" && success(layero);
+          isFunction(success) && success(layero);
         }
       }, options));
     },
@@ -2690,7 +2686,7 @@
       if (!options.photos) return;
 
       // 若 photos 并非选择器或 jQuery 对象，则为普通 object
-      let isObject = !(typeof options.photos === "string" || options.photos instanceof $$1);
+      let isObject = !(isString(options.photos) || options.photos instanceof $$1);
       let photos = isObject ? options.photos : {};
       let data = photos.data || [];
       let start = photos.start || 0;
@@ -2782,7 +2778,7 @@
         return this.photos(options, true, key);
       };
       dict.isNumber = function (n) {
-        return typeof n === "number" && !isNaN(n);
+        return isNumber(n) && !isNaN(n);
       };
       dict.image = {};
       dict.getTransform = function (opts) {
@@ -2960,7 +2956,7 @@
             dict.imgElem = dict.main.children("img");
             dict.event(layero, index, that);
             options.tab && options.tab(data[start], layero);
-            typeof success === "function" && success(layero);
+            isFunction(success) && success(layero);
           },
           end() {
             dict.end = true;

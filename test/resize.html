@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Resizable Element</title>
+    <style>
+      .resizable {
+        width: 300px;
+        height: 200px;
+        background-color: lightblue;
+        position: absolute; /* 使用 absolute 方便改变 left 和 top */
+        border: 1px solid #000;
+        user-select: none; /* 防止选中文本 */
+      }
+
+      /* 鼠标在不同边缘时显示不同的光标 */
+      .resizable.n-resize {
+        cursor: n-resize;
+      }
+      .resizable.s-resize {
+        cursor: s-resize;
+      }
+      .resizable.e-resize {
+        cursor: e-resize;
+      }
+      .resizable.w-resize {
+        cursor: w-resize;
+      }
+      .resizable.ne-resize {
+        cursor: ne-resize;
+      }
+      .resizable.nw-resize {
+        cursor: nw-resize;
+      }
+      .resizable.se-resize {
+        cursor: se-resize;
+      }
+      .resizable.sw-resize {
+        cursor: sw-resize;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="resizable"></div>
+
+    <script>
+      const resizable = document.querySelector(".resizable");
+      let isResizing = false;
+      let currentResizeDir = ""; // 当前的调整方向
+      let initialMousePos = { x: 0, y: 0 };
+      let initialSize = { width: 0, height: 0, left: 0, top: 0 };
+      const resizeMargin = 15; // 可调整的边缘大小
+
+      // 检查鼠标在边缘的哪个方向
+      function getResizeDirection(event) {
+        const rect = resizable.getBoundingClientRect();
+        const mouseX = event.clientX;
+        const mouseY = event.clientY;
+        let dir = "";
+
+        if (mouseY - rect.top <= resizeMargin) dir += "n"; // north
+        if (rect.bottom - mouseY <= resizeMargin) dir += "s"; // south
+        if (mouseX - rect.left <= resizeMargin) dir += "w"; // west
+        if (rect.right - mouseX <= resizeMargin) dir += "e"; // east
+
+        return dir;
+      }
+
+      // 设置鼠标样式
+      function setCursor(dir) {
+        resizable.classList.remove(
+          "n-resize",
+          "s-resize",
+          "e-resize",
+          "w-resize",
+          "ne-resize",
+          "nw-resize",
+          "se-resize",
+          "sw-resize"
+        );
+        if (dir) {
+          resizable.classList.add(`${dir}-resize`);
+        }
+      }
+
+      // 鼠标移动时
+      resizable.addEventListener("mousemove", (event) => {
+        if (isResizing) return; // 如果正在调整大小则忽略
+
+        const dir = getResizeDirection(event);
+        console.log(dir);
+        
+        setCursor(dir);
+      });
+
+      // 鼠标按下时
+      resizable.addEventListener("mousedown", (event) => {
+        const dir = getResizeDirection(event);
+        if (dir) {
+          isResizing = true;
+          currentResizeDir = dir;
+          initialMousePos = { x: event.clientX, y: event.clientY };
+          initialSize = {
+            width: resizable.offsetWidth,
+            height: resizable.offsetHeight,
+            left: resizable.offsetLeft,
+            top: resizable.offsetTop,
+          };
+          event.preventDefault(); // 防止默认的选中文本行为
+        }
+      });
+
+      // 鼠标移动时调整大小
+      document.addEventListener("mousemove", (event) => {
+        if (!isResizing) return;
+
+        let dx = event.clientX - initialMousePos.x;
+        let dy = event.clientY - initialMousePos.y;
+
+        // 向右边和左边调整宽度
+        if (currentResizeDir.includes("e")) {
+          resizable.style.width = `${initialSize.width + dx}px`;
+        }
+        if (currentResizeDir.includes("w")) {
+          resizable.style.width = `${initialSize.width - dx}px`;
+          resizable.style.left = `${initialSize.left + dx}px`;
+        }
+
+        // 向下和上边调整高度
+        if (currentResizeDir.includes("s")) {
+          resizable.style.height = `${initialSize.height + dy}px`;
+        }
+        if (currentResizeDir.includes("n")) {
+          resizable.style.height = `${initialSize.height - dy}px`;
+          resizable.style.top = `${initialSize.top + dy}px`;
+        }
+      });
+
+      // 鼠标释放时停止调整大小
+      document.addEventListener("mouseup", () => {
+        isResizing = false;
+      });
+    </script>
+  </body>
+</html>

@@ -1,3 +1,4 @@
+import { isString, isObject } from "is-what";
 import Constants, { MAP } from "./constants/index";
 import Util from "./util";
 
@@ -92,7 +93,7 @@ class HTMLGenerator {
       layerType, //type
       this.index, //次数
       this.config.time, //时间
-      typeof this.config.content === "object" ? "object" : "string", //类型
+      isObject(this.config.content) ? "object" : "string", //类型
       this.zIndex,
       this.config.area[0],
       this.config.area[1],
@@ -110,8 +111,8 @@ class HTMLGenerator {
       const titleText = titleType ? this.config.title[0] : this.config.title;
       titleHTML = Util.sprintf(Constants.HTML.title, titleStyle, titleText);
     }
-    return typeof this.config.content === "object" &&
-      this.config.type != MAP.TYPE.IFRAME
+
+    return isObject(this.config.content) && this.config.type != MAP.TYPE.IFRAME
       ? ""
       : titleHTML;
   }
@@ -159,7 +160,7 @@ class HTMLGenerator {
     const isPageType = this.config.type === MAP.TYPE.PAGE;
 
     // 如果是 PAGE 类型并且 conType 存在，返回空字符串
-    if (isPageType && typeof this.config.content === "object") {
+    if (isPageType && isObject(this.config.content)) {
       return "";
     }
 
@@ -226,7 +227,8 @@ class HTMLGenerator {
     const buttonHtml = [];
 
     // 如果 `config.btn` 是字符串，将其转换为数组
-    if (typeof this.config.btn === "string") {
+
+    if (isString(this.config.btn)) {
       this.config.btn = [this.config.btn];
     }
 
@@ -263,7 +265,6 @@ class HTMLGenerator {
 
   // 获取加载层图标
   #getLoadingIcon(animClass) {
-    
     const loadingIconsMap = {
       [MAP.LOADING_ICON.BALL_SPIN]: Constants.CLASSES.iconLoading,
       [MAP.LOADING_ICON.BALL_CLIP_ROTATE_GRAY]: Constants.CLASSES.iconLoading1,

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>draggabilly插件的测试</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      .resizable-draggable {
+        width: 200px;
+        height: 150px;
+        background-color: lightblue;
+        border: 2px solid #000;
+        position: absolute;
+        top: 100px;
+        left: 100px;
+        display: flex;
+        flex-direction: column;
+        user-select: none;
+        box-sizing: border-box;
+        z-index: 10;
+      }
+      .resizable-draggable .header {
+        border-bottom: 1px solid red;
+        padding: 20px;
+      }
+
+      /* 拖拽的范围容器 */
+      .move-container {
+        position: fixed;
+        inset: 0;
+        border-bottom: 1px solid gold;
+        display: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- 拖动的容器 -->
+    <div class="move-container"></div>
+    <div class="resizable-draggable">
+      <div class="header">this is title</div>
+      <div>body</div>
+    </div>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <h1>dsadsa</h1>
+    <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/draggabilly@3.0.0/dist/draggabilly.pkgd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script>
+      const element = document.querySelector(".resizable-draggable");
+
+      // or pass in selector string as first argument
+      var draggie = new Draggabilly(element, {
+        handle: element.querySelector(".header"),
+        containment: ".move-container",
+      });
+
+      draggie.on("dragStart", function (event, pointer) {
+        console.log("拖动开始");
+      });
+
+      draggie.on("dragEnd", function (event, pointer) {
+        console.log("拖动结束");
+        $(".move-container").hide();
+      });
+
+      draggie.on("pointerDown", function (event, pointer) {
+        console.log("pointerDown");
+        $(".move-container").show();
+      });
+
+      // 初始化元素上的交互
+      interact(element)
+        // 启用调整大小
+        .resizable({
+          edges: { left: false, right: true, bottom: true, top: false }, // 启用所有边的大小调整
+          manualStart: true,
+          listeners: {
+            move(event) {
+
+              let interaction = event.interaction;
+              let rightEdge =
+                event.client.x >=
+                event.target.getBoundingClientRect().right - 10;
+              let bottomEdge =
+                event.client.y >=
+                event.target.getBoundingClientRect().bottom - 10;
+
+              console.log("aaa");
+
+              // 仅当鼠标位于右下角 10x10 区域时允许开始拖动
+              if (rightEdge && bottomEdge) {
+                // interaction.start(
+                //   { name: "resize" },
+                //   event.interactable,
+                //   event.target
+                // );
+              }
+
+              // let { x, y } = event.target.dataset;
+
+              // x = (parseFloat(x) || 0) + event.deltaRect.left;
+              // y = (parseFloat(y) || 0) + event.deltaRect.top;
+
+              // Object.assign(event.target.style, {
+              //   width: `${event.rect.width}px`,
+              //   height: `${event.rect.height}px`,
+              //   transform: `translate(${x}px, ${y}px)`,
+              // });
+
+              // Object.assign(event.target.dataset, { x, y });
+            },
+          },
+          modifiers: [
+            interact.modifiers.restrictSize({
+              min: { width: 100, height: 50 },
+              max: { width: 600, height: 400 },
+            }),
+          ],
+        });
+    </script>
+  </body>
+</html>

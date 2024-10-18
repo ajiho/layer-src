@@ -1,4 +1,5 @@
 import $ from "jquery";
+import { isString, isObject, isArray } from "is-what";
 import { shared } from "./shared";
 import Constants, { MAP } from "./constants/index";
 import Util from "./util";
@@ -77,7 +78,7 @@ class Container {
     console.log(this.config.content);
 
     // 判断content选项是对象
-    if (typeof this.config.content === "object") {
+    if (isObject(this.config.content)) {
       if (
         this.config.type == MAP.TYPE.IFRAME ||
         this.config.type == MAP.TYPE.TIPS
@@ -285,7 +286,8 @@ class Container {
       [MAP.TYPE.IFRAME]: () => {
         // console.log("www");
         // 转换成数组
-        this.config.content = Array.isArray(this.config.content)
+
+        this.config.content = isArray(this.config.content)
           ? this.config.content
           : [this.config.content || "", "auto"];
 
@@ -309,14 +311,14 @@ class Container {
       },
       // tips
       [MAP.TYPE.TIPS]: () => {
-        this.config.content = Array.isArray(this.config.content)
+        this.config.content = isArray(this.config.content)
           ? this.config.content
           : [this.config.content, "body"];
 
         this.config.follow = this.config.content[1];
         this.config.content = `${this.config.content[0]}${Constants.HTML.tipsG}`;
         delete this.config.title;
-        this.config.tips = Array.isArray(this.config.tips)
+        this.config.tips = isArray(this.config.tips)
           ? this.config.tips
           : [this.config.tips, true];
         //是否允许同时存在多个 tips 层，即不销毁上一个 tips
@@ -332,7 +334,7 @@ class Container {
   // 初始化area属性
   initAreaOption() {
     // 初始化 area 属性
-    if (typeof this.config.area === "string") {
+    if (isString(this.config.area)) {
       this.config.area =
         this.config.area === "auto" ? ["", ""] : [this.config.area, ""];
     }
@@ -534,7 +536,8 @@ class Container {
       config = that.config,
       layero = that.layero;
     let area = [layero.outerWidth(), layero.outerHeight()];
-    let type = typeof config.offset === "object";
+
+    let type = isArray(config.offset);
     that.offsetTop = ($(window).height() - area[1]) / 2;
     that.offsetLeft = ($(window).width() - area[0]) / 2;
 
@@ -601,5 +604,4 @@ class Container {
   }
 }
 
-// export default Container;
 export default Container;

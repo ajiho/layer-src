@@ -6,6 +6,7 @@ import { shared } from "./shared";
 import Class from "./class";
 import Container from "./container";
 import Closer from "./Closer";
+import { isString, isObject, isArray, isFunction, isNumber } from "is-what";
 
 // 默认内置方法。
 export default {
@@ -18,7 +19,9 @@ export default {
   config(options = {}) {
     shared.config = $.extend({}, shared.config, options);
 
-    typeof options.extend === "string" && (options.extend = [options.extend]);
+    if (isString(options.extend)) {
+      options.extend = [options.extend];
+    }
 
     if (!options.extend) return this; //如果选项不存在extend属性，就直接return
 
@@ -32,7 +35,7 @@ export default {
 
   // 各种快捷引用
   alert(content, options, yes) {
-    let type = typeof options === "function";
+    let type = isFunction(options);
     if (type) yes = options;
 
     return this.open(
@@ -47,7 +50,7 @@ export default {
   },
 
   confirm(content, options, yes, cancel) {
-    let type = typeof options === "function";
+    let type = isFunction(options);
     if (type) {
       cancel = yes;
       yes = options;
@@ -67,7 +70,8 @@ export default {
 
   msg(content, options, end) {
     // 最常用提示层
-    let type = typeof options === "function";
+    let type = isFunction(options);
+
     // 源皮肤
     let rskin = shared.config.skin;
 
@@ -146,18 +150,14 @@ export default {
     if (type === MAP.TYPE_NAME[MAP.TYPE.IFRAME]) {
       layero.find("iframe").css({
         height:
-          (typeof options.height === "number"
-            ? options.height
-            : layero.height()) -
+          (isNumber(options.height) ? options.height : layero.height()) -
           titHeight -
           btnHeight,
       });
     } else {
       contentElem.css({
         height:
-          (typeof options.height === "number"
-            ? options.height
-            : layero.height()) -
+          (isNumber(options.height) ? options.height : layero.height()) -
           titHeight -
           btnHeight -
           parseFloat(contentElem.css("padding-top")) -
@@ -214,7 +214,7 @@ export default {
   closeAll(type, callback) {
     let that = this;
 
-    if (typeof type === "function") {
+    if (isFunction(type)) {
       callback = type;
       type = null;
     }
@@ -231,15 +231,14 @@ export default {
         );
       is = null;
     });
-    if (domsElem.length === 0) typeof callback === "function" && callback();
+    if (domsElem.length === 0) isFunction(callback) && callback();
   },
   closeLast(type, callback) {
     const layerIndexList = [];
     const isArrayType = Array.isArray(type);
-    const selector =
-      typeof type === "string"
-        ? `.layui-layer-${type}`
-        : `.${Constants.CLASSES.layuiLayer}`;
+    const selector = isString(type)
+      ? `.layui-layer-${type}`
+      : `.${Constants.CLASSES.layuiLayer}`;
 
     $(selector).each(function (i, el) {
       const layero = $(el);
@@ -315,7 +314,10 @@ export default {
     let titHeight =
       layero.find(`.${Constants.CLASSES.layerTitle}`).outerHeight() || 0;
     let minLeft = layero.attr("minLeft"); // 最小化时的横坐标
-    let hasMinLeft = typeof minLeft === "string"; // 是否已经赋值过最小化坐标
+
+    // 是否已经赋值过最小化坐标
+    let hasMinLeft = isString(minLeft);
+
     let left = hasMinLeft ? minLeft : 181 * shared.minStackIndex + "px";
     let position = layero.css("position");
     let minWidth = 180; // 最小化时的宽度
@@ -456,7 +458,7 @@ export default {
       placeholder = "";
     options = options || {};
 
-    if (typeof options === "function") yes = options;
+    if (isFunction(options)) yes = options;
 
     if (options.area) {
       let area = options.area;
@@ -497,8 +499,9 @@ export default {
           success(layero) {
             prompt = layero.find(".layui-layer-input");
             prompt.val(options.value || "").focus();
-            typeof success === "function" && success(layero);
+            isFunction(success) && success(layero);
           },
+
           resize: false,
           yes(index) {
             let value = prompt.val();
@@ -588,9 +591,11 @@ export default {
                 index = othis.index();
               othis.addClass(THIS).siblings().removeClass(THIS);
               main.eq(index).show().siblings().hide();
-              typeof options.change === "function" && options.change(index);
+
+              isFunction(options.change) && options.change(index);
             });
-            typeof success === "function" && success(layero);
+
+            isFunction(success) && success(layero);
           },
         },
         options
@@ -617,9 +622,8 @@ export default {
     if (!options.photos) return;
 
     // 若 photos 并非选择器或 jQuery 对象，则为普通 object
-    let isObject = !(
-      typeof options.photos === "string" || options.photos instanceof $
-    );
+    let isObject = !(isString(options.photos) || options.photos instanceof $);
+
     let photos = isObject ? options.photos : {};
     let data = photos.data || [];
     let start = photos.start || 0;
@@ -723,7 +727,7 @@ export default {
     };
 
     dict.isNumber = function (n) {
-      return typeof n === "number" && !isNaN(n);
+      return isNumber(n) && !isNaN(n);
     };
 
     dict.image = {};
@@ -963,7 +967,7 @@ export default {
                 dict.imgElem = dict.main.children("img");
                 dict.event(layero, index, that);
                 options.tab && options.tab(data[start], layero);
-                typeof success === "function" && success(layero);
+                isFunction(success) && success(layero);
               },
               end() {
                 dict.end = true;

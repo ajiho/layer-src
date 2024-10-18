@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      .resizable-box {
+        width: 300px;
+        height: 200px;
+        background-color: lightgray;
+        resize: both; /* 可拖拽调整宽度和高度 */
+        overflow: auto; /* 确保内容不超出边界 */
+        padding: 10px;
+      }
+
+      .resizable-box::-webkit-scrollbar {
+        width: 50px;
+      }
+    </style>
+    <title>Resizable Div</title>
+  </head>
+  <body>
+    <div class="resizable-box">拖动右下角来改变大小22。</div>
+  </body>
+</html>

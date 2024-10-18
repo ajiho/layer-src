@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Resizable Element</title>
+    <style>
+      .resizable {
+        width: 300px;
+        height: 200px;
+        background-color: lightblue;
+        position: relative;
+        border: 1px solid #000;
+        user-select: none;
+
+        /* 加上这个样式它拖动就不会有问题 */
+        /* box-sizing: border-box; */
+      }
+
+      /* Cursor styles for resizing */
+      .n-resize {
+        cursor: n-resize;
+      }
+      .s-resize {
+        cursor: s-resize;
+      }
+      .e-resize {
+        cursor: e-resize;
+      }
+      .w-resize {
+        cursor: w-resize;
+      }
+      .ne-resize {
+        cursor: ne-resize;
+      }
+      .nw-resize {
+        cursor: nw-resize;
+      }
+      .se-resize {
+        cursor: se-resize;
+      }
+      .sw-resize {
+        cursor: sw-resize;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="resizable"></div>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script>
+      class Resizable {
+        isResizing = false;
+        // 当前的调整方向
+        currentResizeDir = "";
+        initialMousePos = { x: 0, y: 0 };
+        initialSize = { width: 0, height: 0, left: 0, top: 0 };
+
+        constructor(element, options = {}) {
+          this.element = element;
+
+          this.options = {
+            ...{
+              // 可调整的边缘大小
+              resizeMargin: 40,
+              handles: ["s", "se"],
+            },
+            ...options,
+          };
+
+          this.init();
+        }
+
+        init() {
+          // 鼠标移动时
+          this.element.addEventListener("mousemove", (event) => {
+            if (this.isResizing) return; // 如果正在调整大小则忽略
+
+            const dir = this.getResizeDirection(event);
+
+            this.setCursor(dir);
+          });
+
+          // 鼠标按下时
+          this.element.addEventListener("mousedown", (event) => {
+            const dir = this.getResizeDirection(event);
+            if (dir) {
+              this.isResizing = true;
+              this.currentResizeDir = dir;
+              this.initialMousePos = { x: event.clientX, y: event.clientY };
+              const style = window.getComputedStyle(this.element);
+              const rect = this.element.getBoundingClientRect();
+              // this.initialSize = {
+              //   width: this.element.offsetWidth,
+              //   height: this.element.offsetHeight,
+              //   left: this.element.offsetLeft,
+              //   top: this.element.offsetTop,
+              // };
+
+              this.initialSize = {
+                width: parseFloat(rect.width) || 0,
+                height: parseFloat(rect.height) || 0,
+                left: parseFloat(style.left) || 0,
+                top: parseFloat(style.top) || 0,
+              };
+
+              console.log(this.initialSize);
+
+              this.element.style.height = `${this.initialSize.height}px`;
+
+              event.preventDefault(); // 防止默认的选中文本行为
+            }
+          });
+
+          // 鼠标移动时调整大小
+          document.addEventListener("mousemove", (event) => {
+            if (!this.isResizing) return;
+
+            let dx = event.clientX - this.initialMousePos.x;
+            let dy = event.clientY - this.initialMousePos.y;
+
+            // 向右边和左边调整宽度
+            if (this.currentResizeDir.includes("e")) {
+              this.element.style.width = `${this.initialSize.width + dx}px`;
+            }
+            if (this.currentResizeDir.includes("w")) {
+              this.element.style.width = `${this.initialSize.width - dx}px`;
+              this.element.style.left = `${this.initialSize.left + dx}px`;
+            }
+
+            // 向下和上边调整高度
+            if (this.currentResizeDir.includes("s")) {
+              this.element.style.height = `${this.initialSize.height + dy}px`;
+            }
+            if (this.currentResizeDir.includes("n")) {
+              this.element.style.height = `${this.initialSize.height - dy}px`;
+              this.element.style.top = `${this.initialSize.top + dy}px`;
+            }
+          });
+
+          // 鼠标释放时停止调整大小
+          document.addEventListener("mouseup", () => {
+            this.isResizing = false;
+          });
+        }
+
+        getResizeDirection(event) {
+          const rect = this.element.getBoundingClientRect();
+          const mouseX = event.clientX;
+          const mouseY = event.clientY;
+          let dir = "";
+
+          if (mouseY - rect.top <= this.options.resizeMargin) dir += "n"; // north
+          if (rect.bottom - mouseY <= this.options.resizeMargin) dir += "s"; // south
+          if (mouseX - rect.left <= this.options.resizeMargin) dir += "w"; // west
+          if (rect.right - mouseX <= this.options.resizeMargin) dir += "e"; // east
+
+          return dir;
+        }
+
+        // 设置鼠标样式
+        setCursor(dir) {
+          this.element.classList.remove(
+            "n-resize",
+            "s-resize",
+            "e-resize",
+            "w-resize",
+            "ne-resize",
+            "nw-resize",
+            "se-resize",
+            "sw-resize"
+          );
+          if (dir) {
+            this.element.classList.add(`${dir}-resize`);
+          }
+        }
+      }
+
+      const resizableElement = document.querySelector(".resizable");
+      const resizableInstance = new Resizable(resizableElement, {
+        handle: ["n", "s"],
+      });
+    </script>
+  </body>
+</html>

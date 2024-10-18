@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Interact.js Draggable and Resizable</title>
+    <style>
+      .resizable-draggable {
+        width: 200px;
+        height: 150px;
+        background-color: lightblue;
+        border: 2px solid #000;
+        position: absolute;
+        top: 100px;
+        left: 100px;
+        display: flex;
+        flex-direction: column;
+        user-select: none;
+      }
+      .resizable-draggable .header {
+        border-bottom: 1px solid red;
+        padding: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="resizable-draggable">
+      <div class="header">this is title</div>
+      <div>body</div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script>
+      const element = document.querySelector(".resizable-draggable");
+
+      // console.log(window.innerWidth)
+
+      const position = {
+        x: parseFloat($(element).css("left")),
+        y: parseFloat($(element).css("top")),
+      };
+
+      // 初始化元素上的交互
+      interact(element)
+        // 启用拖动
+        .draggable({
+          listeners: {
+            move(event) {
+
+
+              console.log(position);
+              console.log(event.dx);
+              
+
+              // 获取元素的当前位置
+              position.x += event.dx;
+              position.y += event.dy;
+
+              if (position.x < 0) {
+                position.x = 0;
+              }
+
+              // if (position.y < 0) {
+              //   position.y = 0;
+              //   event.dy = 0;
+              // }
+
+              // if (window.innerWidth - position.x < $(element).outerWidth()) {
+              //   position.x = window.innerWidth - $(element).outerWidth();
+              // }
+
+              $(event.target).css({
+                left: position.x,
+                top: position.y,
+              });
+
+              // console.log(window.innerWidth - $(element).outerWidth());
+              // console.log(window.innerWidth - position.x);
+              // console.log($(element).outerWidth());
+
+              // 移动元素
+              // event.target.style.left = position.y;
+              // event.target.style.top = position.x;
+
+              // 将新位置存储在数据属性中
+              // target.setAttribute("data-x", x);
+              // target.setAttribute("data-y", y);
+            },
+          },
+
+          // modifiers: [
+          //   interact.modifiers.restrictEdges({
+          //     // 元素不能拖动超出窗口边缘
+          //     restriction: "window", // 或者改为 'window' 以限制到整个窗口
+          //     endOnly: true,
+          //   }),
+          // ],
+        });
+      // // 启用调整大小
+      // .resizable({
+      //   edges: { left: true, right: true, bottom: true, top: true }, // 启用所有边的大小调整
+      //   listeners: {
+      //     move(event) {
+      //       const { target } = event;
+
+      //       // console.log(event);
+
+      //       let x = parseFloat(target.getAttribute("data-x")) || 0;
+      //       let y = parseFloat(target.getAttribute("data-y")) || 0;
+
+      //       console.log(event.deltaRect.left, event.deltaRect.top);
+
+      //       // 更新元素的大小
+      //       target.style.width = `${event.rect.width}px`;
+      //       target.style.height = `${event.rect.height}px`;
+
+      //       //必要时移动元件
+      //       x += event.deltaRect.left;
+      //       y += event.deltaRect.top;
+
+      //       target.style.transform = `translate(${x}px, ${y}px)`;
+
+      //       // 更新存储位置
+      //       target.setAttribute("data-x", x);
+      //       target.setAttribute("data-y", y);
+      //     },
+      //   },
+      //   modifiers: [
+      //     interact.modifiers.restrictSize({
+      //       min: { width: 100, height: 50 },
+      //       max: { width: 600, height: 400 },
+      //     }),
+      //   ],
+      // });
+    </script>
+  </body>
+</html>

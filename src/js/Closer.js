@@ -1,4 +1,5 @@
 import Util from "./util";
+import { isFunction } from "is-what";
 import Constants, { MAP } from "./constants";
 import { shared } from "./shared";
 
@@ -27,10 +28,7 @@ class Closer {
   execute() {
     if (!this.layero[0]) return;
 
-    if (
-      !this.hideOnClose &&
-      typeof shared.beforeEnd[this.index] === "function"
-    ) {
+    if (!this.hideOnClose && isFunction(shared.beforeEnd[this.index])) {
       Util.promiseLikeResolve(shared.beforeEnd[this.index]()).then(
         (result) => {
           if (result !== false) {
@@ -120,7 +118,7 @@ class Closer {
         this.layero.remove();
       }
 
-      typeof shared.end[this.index] === "function" && shared.end[this.index]();
+      isFunction(shared.end[this.index]) && shared.end[this.index]();
       delete shared.end[this.index];
 
       // 移除 resize 事件
