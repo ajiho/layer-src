@@ -1,0 +1,91 @@
+/* 动画 */
+.layer-anim {
+  animation-fill-mode: both;
+  animation-duration: 0.3s;
+}
+
+.layer-anim-00 {
+  animation-name: layer-bounceIn;
+}
+
+.layer-anim-01 {
+  animation-name: layer-zoomInDown;
+}
+
+.layer-anim-02 {
+  animation-name: layer-fadeInUpBig;
+}
+
+.layer-anim-03 {
+  animation-name: layer-zoomInLeft;
+}
+
+.layer-anim-04 {
+  animation-name: layer-rollIn;
+}
+
+.layer-anim-05 {
+  animation-name: layer-fadeIn;
+}
+
+.layer-anim-06 {
+  animation-name: layer-shake;
+}
+
+/* 从上往下 */
+
+.layer-anim-slide-down {
+  animation-name: layer-slide-down;
+}
+.layer-anim-slide-down-out {
+  animation-name: layer-slide-down-out;
+}
+
+/* 从右往左 */
+
+.layer-anim-slide-left {
+  animation-name: layer-slide-left;
+}
+.layer-anim-slide-left-out {
+  animation-name: layer-slide-left-out;
+}
+
+/* 从下往上 */
+
+.layer-anim-slide-up {
+  animation-name: layer-slide-up;
+}
+.layer-anim-slide-up-out {
+  animation-name: layer-slide-up-out;
+}
+
+/* 从左往右 */
+
+.layer-anim-slide-right {
+  animation-name: layer-slide-right;
+}
+.layer-anim-slide-right-out {
+  animation-name: layer-slide-right-out;
+}
+
+.layer-anim-close {
+  animation-name: layer-bounceOut;
+  animation-fill-mode: both;
+  animation-duration: 0.2s;
+}
+.layui-anim {
+  animation-duration: 0.3s;
+  animation-fill-mode: both;
+}
+.layui-anim.layui-icon {
+  display: inline-block;
+}
+.layui-anim-loop {
+  animation-iteration-count: infinite;
+}
+
+.layui-anim-rotate {
+  animation-name: layui-rotate;
+  animation-duration: 1s;
+  animation-timing-function: linear;
+}

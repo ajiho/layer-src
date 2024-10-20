@@ -1,7 +1,31 @@
 import $ from "jquery";
 import Constants, { MAP } from "../constants/index";
+import { computePosition as base, offset } from "@floating-ui/dom";
+
+const centerOffset = offset(({ rects }) => {
+  console.log(rects.reference);
+
+  return -rects.reference.height / 2 + rects.floating.height / 2;
+});
 
 export default {
+  // 包装floating-ui的computePosition方法让其支持居中显示 #https://floating-ui.com/docs/offset#creating-custom-placements
+  computePosition(referenceEl, floatingEl, options) {
+    const isCentered = options.placement === "center";
+
+    const placement = isCentered ? "bottom" : options.placement;
+
+    const middleware = [
+      ...(options.middleware || []),
+      isCentered && centerOffset,
+    ];
+
+    return base(referenceEl, floatingEl, {
+      ...options,
+      placement,
+      middleware,
+    });
+  },
   getLayeroByIndex(index) {
     return $(`#${Constants.CLASSES.layuiLayer}${index}`);
   },

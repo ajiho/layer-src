@@ -6,13 +6,13 @@
   position: fixed;
   pointer-events: auto;
   top: 150px;
-  left: 0;
+  left: 50px;
   margin: 0;
   padding: 0;
   background-color: #fff;
   background-clip: content-box;
   border-radius: 2px;
-  box-shadow: 1px 1px 50px rgba(0, 0, 0, 0.3);
+  // box-shadow: 1px 1px 50px rgba(0, 0, 0, 0.3);
 
   // 关闭按钮
   .layui-layer-close {
@@ -21,7 +21,7 @@
 
   // 标题栏
   .layui-layer-title {
-    padding: 0 81px 0 16px;
+    // padding: 0 81px 0 16px;
     height: 50px;
     line-height: 50px;
     border-bottom: 1px solid #f0f0f0;
@@ -31,125 +31,13 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     border-radius: 2px 2px 0 0;
+    display: flex;
+    justify-content: space-between;
   }
 
   // 内容区域
   .layui-layer-content {
     position: relative;
-  }
-
-  // 头部操作区域
-  .layui-layer-setwin {
-    position: absolute;
-    right: 15px;
-    top: 16px;
-    font-size: 0;
-    line-height: initial;
-    span {
-      position: relative;
-      width: 16px;
-      height: 16px;
-      line-height: 18px;
-      margin-left: 10px;
-      text-align: center;
-      font-size: 16px;
-      cursor: pointer;
-      color: #000;
-      box-sizing: border-box;
-      display: inline-block;
-      vertical-align: middle;
-    }
-
-    .layui-layer-min {
-      &::before {
-        content: "";
-        position: absolute;
-        width: 12px;
-        border-bottom: 1px solid #2e2d3c;
-        left: 50%;
-        top: 50%;
-        margin: -0.5px 0 0 -6px;
-        cursor: pointer;
-      }
-      &:hover::before {
-        background-color: #2d93ca;
-      }
-    }
-
-    .layui-layer-max {
-      &::before {
-        content: "";
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        z-index: 1;
-        width: 9px;
-        height: 9px;
-        margin: -5px 0 0 -5px;
-        border: 1px solid #2e2d3c;
-      }
-      &::after {
-        content: "";
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        z-index: 1;
-        width: 9px;
-        height: 9px;
-        margin: -5px 0 0 -5px;
-        border: 1px solid #2e2d3c;
-      }
-      &:hover::before {
-        border-color: #2d93ca;
-      }
-
-      &:hover::after {
-        border-color: #2d93ca;
-      }
-    }
-
-    .layui-layer-maxmin {
-      &::before {
-        width: 7px;
-        height: 7px;
-        margin: -3px 0 0 -3px;
-        background-color: #fff;
-      }
-      &::after {
-        width: 7px;
-        height: 7px;
-        margin: -3px 0 0 -3px;
-        background-color: #fff;
-        z-index: 0;
-        margin: -5px 0 0 -1px;
-      }
-    }
-    .layui-layer-close {
-      cursor: pointer;
-      &:hover {
-        opacity: 0.7;
-      }
-    }
-
-    .layui-layer-close2 {
-      position: absolute;
-      right: -28px;
-      top: -28px;
-      color: #fff;
-      background-color: #787878;
-      padding: 3px;
-      border: 3px solid;
-      width: 28px;
-      height: 28px;
-      font-size: 16px;
-      font-weight: bolder;
-      border-radius: 50%;
-      margin-left: 0;
-      &:hover {
-        opacity: unset;
-        background-color: #3888f6;
-      }
-    }
   }
 
   .layui-layer-resize {

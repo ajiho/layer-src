@@ -1,11 +1,13 @@
 import $ from "jquery";
-import { isString, isObject, isArray } from "is-what";
+import { isString, isObject, isArray, isInstanceOf } from "is-what";
 import { shared } from "./shared";
 import Constants, { MAP } from "./constants/index";
 import Util from "./util";
 import HTMLGenerator from "./HTMLGenerator";
 import TipsLocation from "./TipsLocation";
 import EventBinder from "./EventBinder";
+import { autoUpdate, flip, offset, shift } from "@floating-ui/dom";
+import Draggabilly from "draggabilly";
 
 class Container {
   //成员变量
@@ -56,7 +58,6 @@ class Container {
       this.config.id &&
       $(`.${Constants.CLASSES.layuiLayer}`).find(`#${this.config.id}`)[0]
     ) {
-      console.log("没有创建");
     }
 
     // 是否移除活动元素的焦点
@@ -68,40 +69,8 @@ class Container {
 
     this.adjustLayerSettings();
 
-    // 使用类来生成字符串
-    const htmlGenerator = new HTMLGenerator(this.config, this.index);
-    const html = htmlGenerator.getContainerHTML();
-
-    // 加入遮罩层
-    $("body").append(htmlGenerator.getShadeHTML());
-
-    console.log(this.config.content);
-
-    // 判断content选项是对象
-    if (isObject(this.config.content)) {
-      if (
-        this.config.type == MAP.TYPE.IFRAME ||
-        this.config.type == MAP.TYPE.TIPS
-      ) {
-        $("body").append(html);
-      } else {
-        if (
-          !this.config.content.parents(`.${Constants.CLASSES.layuiLayer}`)[0]
-        ) {
-          this.config.content
-            .data("display", this.config.content.css("display"))
-            .show()
-            .addClass(Constants.CLASSES.layerWrap)
-            .wrap(html);
-
-          $(`#${Constants.CLASSES.layuiLayer}${this.index}`)
-            .find(`.${Constants.CLASSES.layerContent}`)
-            .before(htmlGenerator.getTtitleHTML());
-        }
-      }
-    } else {
-      $("body").append(html);
-    }
+    // 追加html到页面上
+    this.appendHTML();
 
     this.$moveEl = $(
       Util.sprintf(
@@ -111,10 +80,6 @@ class Container {
       )
     );
     $(`#${Constants.CLASSES.move}`)[0] || $("body").append(this.$moveEl);
-
-    // 保存为成员变量,方便后续使用
-    this.layero = Util.getLayeroByIndex(this.index);
-    this.shadeo = Util.getShadeoByIndex(this.index);
 
     this.layeroOuterWidth = this.layero.outerWidth();
     this.layeroouterHeight = this.layero.outerHeight();
@@ -135,52 +100,33 @@ class Container {
       this.offset();
 
       // 获取拖拽层的元素堆叠索引
-      const movezIndex = parseInt(
-        Util.getStyle(
-          document.getElementById(Constants.CLASSES.move),
-          "z-index"
-        )
-      );
+      // const movezIndex = parseInt(
+      //   Util.getStyle(
+      //     document.getElementById(Constants.CLASSES.move),
+      //     "z-index"
+      //   )
+      // );
 
-      if (!movezIndex) {
-        this.layero
-          .css("visibility", "hidden")
-          .offset()
-          .css("visibility", "visible");
-      }
+      // if (!movezIndex) {
+      //   console.log(this.layero);
+
+      //   this.layero
+      //     .css("visibility", "hidden")
+      //     .offset()
+      //     .css("visibility", "visible");
+      // }
     }
 
     //若是固定定位，则跟随 resize 事件来自适应坐标
     if (this.config.fixed) {
-      if (!shared.events.resize[this.index]) {
-        //如果当前实例对应的resize事件没有设置
-
-        shared.events.resize[this.index] = () => {
-          // 调用 offset 方法
-          this.offset();
-
-          // 判断 area 是否为百分比格式，如果是则调用 auto 方法
-          const isPercentage = this.config.area.some((area) =>
-            /^\d+%$/.test(area)
-          );
-          if (isPercentage) this.auto(this.index);
-
-          // 如果类型为 4，调用 tips 方法
-          if (this.config.type === MAP.TYPE.TIPS) this.tips();
-        };
-
-        // 此处 resize 事件不会一直叠加，当关闭弹层时会移除该事件
-        $(window).on("resize", shared.events.resize[this.index]);
-      }
+      // this.autoUpdatePosi();
     }
 
-    this.config.time <= 0 ||
-      setTimeout(() => {
-        this.layer.close(this.index);
-      }, this.config.time);
+    // 是否自动关闭弹出层
+    this.autoClose();
 
     // 拖拽处理
-    this.move();
+    // this.move();
 
     // 事件绑定,这里用类的方式来实现，比较友好
     new EventBinder(this);
@@ -190,6 +136,46 @@ class Container {
 
     // 记录配置信息
     this.layero.data("config", this.config);
+  }
+
+  appendHTML() {
+    // 使用类来生成字符串
+    const htmlGenerator = new HTMLGenerator(this.config, this.index);
+    const html = htmlGenerator.getContainerHTML();
+
+    // 加入遮罩层
+    $("body").append(htmlGenerator.getShadeHTML());
+    // 加入主体内容
+    $("body").append(html);
+
+    // 保存为成员变量,方便后续使用
+    this.layero = Util.getLayeroByIndex(this.index);
+    this.shadeo = Util.getShadeoByIndex(this.index);
+
+    // 如果是一个jquery对象,那么则是捕获层
+    if (
+      isInstanceOf(this.config.content, $) &&
+      !this.config.content.parents(`.${Constants.CLASSES.layuiLayer}`)[0]
+    ) {
+      console.log("捕获");
+
+      console.log(this.layero.find(`.${Constants.CLASSES.layerContent}`));
+
+      console.log(this.config.content);
+
+      this.layero
+        .find(`.${Constants.CLASSES.layerContent}`)
+        .wrapInner(this.config.content.show());
+    }
+  }
+
+  // 自动关闭弹出层
+  autoClose() {
+    if (this.config.time > 0) {
+      setTimeout(() => {
+        this.layer.close(this.index);
+      }, this.config.time);
+    }
   }
 
   // 设置动画
@@ -222,6 +208,30 @@ class Container {
     layero.addClass(animationFullClass).one("animationend", () => {
       layero.removeClass(animationFullClass);
     });
+  }
+
+  // 自动更新位置处理
+  autoUpdatePosi() {
+    if (!shared.events.resize[this.index]) {
+      //如果当前实例对应的resize事件没有设置
+
+      shared.events.resize[this.index] = () => {
+        // 调用 offset 方法
+        this.offset();
+
+        // 判断 area 是否为百分比格式，如果是则调用 auto 方法
+        const isPercentage = this.config.area.some((area) =>
+          /^\d+%$/.test(area)
+        );
+        if (isPercentage) this.auto(this.index);
+
+        // 如果类型为 4，调用 tips 方法
+        if (this.config.type === MAP.TYPE.TIPS) this.tips();
+      };
+
+      // 此处 resize 事件不会一直叠加，当关闭弹层时会移除该事件
+      $(window).on("resize", shared.events.resize[this.index]);
+    }
   }
 
   // 设置弹出框的高度和宽度(弹出框的位置)
@@ -324,6 +334,8 @@ class Container {
         //是否允许同时存在多个 tips 层，即不销毁上一个 tips
         this.config.tipsMore ||
           this.layer.closeAll(MAP.TYPE_NAME[MAP.TYPE.TIPS]);
+
+        console.log("tips");
       },
     };
 
@@ -343,6 +355,29 @@ class Container {
   // 拖拽层
   move() {
     let that = this;
+
+    const element = this.layero[0];
+
+    const draggie = new Draggabilly(element, {
+      handle: element.querySelector(".layui-layer-title"),
+      containment: this.$moveEl[0],
+    });
+
+    draggie.on("pointerDown", function (event, pointer) {
+      console.log("pointerDown");
+      // $(".move-container").show();
+
+      that.$moveEl.show();
+    });
+
+    draggie.on("dragEnd", function (event, pointer) {
+      console.log("拖动结束");
+      that.$moveEl.hide();
+    });
+  }
+
+  move2() {
+    let that = this;
     let DATA_NAME = ["LAY_MOVE_DICT", "LAY_RESIZE_DICT"];
     let moveElem = this.layero.find(this.config.move);
     let resizeElem = this.layero.find(`.${Constants.CLASSES.layerResize}`);
@@ -357,8 +392,6 @@ class Container {
       } // 不是左键不处理
       let othis = $(this);
       let dict = {};
-
-      console.log("mousedown");
 
       if (that.config.move) {
         dict.layero = that.layero;
@@ -532,6 +565,42 @@ class Container {
   //==============公开api===================
   // 计算坐标
   offset() {
+    const floatingEl = this.layero[0];
+
+    const virtualEl = {
+      getBoundingClientRect() {
+        return {
+          top: 0, // 窗口顶部，视口的 top 是 0
+          left: 0, // 窗口左边，视口的 left 是 0
+          bottom: window.innerHeight, // 窗口的底部等于窗口高度
+          right: window.innerWidth, // 窗口的右边等于窗口宽度
+          width: window.innerWidth, // 窗口的宽度
+          height: window.innerHeight, // 窗口的高度
+          x: 0, // x 坐标等同于 left
+          y: 0, // y 坐标等同于 top
+        };
+      },
+    };
+
+    Util.computePosition(virtualEl, floatingEl, {
+      //let left-start left-end top-start right-start
+      placement: "left",
+      strategy: "fixed", // 默认是'absolute'
+      middleware: [
+        shift({
+          // 重要:让参考元素可以被重叠
+          crossAxis: true,
+        }),
+      ],
+    }).then(({ x, y }) => {
+      Object.assign(floatingEl.style, {
+        left: `${x}px`,
+        top: `${y}px`,
+      });
+    });
+  }
+
+  offset2() {
     let that = this,
       config = that.config,
       layero = that.layero;

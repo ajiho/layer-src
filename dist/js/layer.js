@@ -245,7 +245,1128 @@
     MAP: MAP
   };
 
+  /**
+   * Custom positioning reference element.
+   * @see https://floating-ui.com/docs/virtual-elements
+   */
+
+  const min = Math.min;
+  const max = Math.max;
+  const round = Math.round;
+  const createCoords = v => ({
+    x: v,
+    y: v
+  });
+  function clamp(start, value, end) {
+    return max(start, min(value, end));
+  }
+  function evaluate(value, param) {
+    return typeof value === 'function' ? value(param) : value;
+  }
+  function getSide(placement) {
+    return placement.split('-')[0];
+  }
+  function getAlignment(placement) {
+    return placement.split('-')[1];
+  }
+  function getOppositeAxis(axis) {
+    return axis === 'x' ? 'y' : 'x';
+  }
+  function getAxisLength(axis) {
+    return axis === 'y' ? 'height' : 'width';
+  }
+  function getSideAxis(placement) {
+    return ['top', 'bottom'].includes(getSide(placement)) ? 'y' : 'x';
+  }
+  function getAlignmentAxis(placement) {
+    return getOppositeAxis(getSideAxis(placement));
+  }
+  function expandPaddingObject(padding) {
+    return {
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+      ...padding
+    };
+  }
+  function getPaddingObject(padding) {
+    return typeof padding !== 'number' ? expandPaddingObject(padding) : {
+      top: padding,
+      right: padding,
+      bottom: padding,
+      left: padding
+    };
+  }
+  function rectToClientRect(rect) {
+    const {
+      x,
+      y,
+      width,
+      height
+    } = rect;
+    return {
+      width,
+      height,
+      top: y,
+      left: x,
+      right: x + width,
+      bottom: y + height,
+      x,
+      y
+    };
+  }
+
+  function computeCoordsFromPlacement(_ref, placement, rtl) {
+    let {
+      reference,
+      floating
+    } = _ref;
+    const sideAxis = getSideAxis(placement);
+    const alignmentAxis = getAlignmentAxis(placement);
+    const alignLength = getAxisLength(alignmentAxis);
+    const side = getSide(placement);
+    const isVertical = sideAxis === 'y';
+    const commonX = reference.x + reference.width / 2 - floating.width / 2;
+    const commonY = reference.y + reference.height / 2 - floating.height / 2;
+    const commonAlign = reference[alignLength] / 2 - floating[alignLength] / 2;
+    let coords;
+    switch (side) {
+      case 'top':
+        coords = {
+          x: commonX,
+          y: reference.y - floating.height
+        };
+        break;
+      case 'bottom':
+        coords = {
+          x: commonX,
+          y: reference.y + reference.height
+        };
+        break;
+      case 'right':
+        coords = {
+          x: reference.x + reference.width,
+          y: commonY
+        };
+        break;
+      case 'left':
+        coords = {
+          x: reference.x - floating.width,
+          y: commonY
+        };
+        break;
+      default:
+        coords = {
+          x: reference.x,
+          y: reference.y
+        };
+    }
+    switch (getAlignment(placement)) {
+      case 'start':
+        coords[alignmentAxis] -= commonAlign * (rtl && isVertical ? -1 : 1);
+        break;
+      case 'end':
+        coords[alignmentAxis] += commonAlign * (rtl && isVertical ? -1 : 1);
+        break;
+    }
+    return coords;
+  }
+
+  /**
+   * Computes the `x` and `y` coordinates that will place the floating element
+   * next to a given reference element.
+   *
+   * This export does not have any `platform` interface logic. You will need to
+   * write one for the platform you are using Floating UI with.
+   */
+  const computePosition$1 = async (reference, floating, config) => {
+    const {
+      placement = 'bottom',
+      strategy = 'absolute',
+      middleware = [],
+      platform
+    } = config;
+    const validMiddleware = middleware.filter(Boolean);
+    const rtl = await (platform.isRTL == null ? void 0 : platform.isRTL(floating));
+    let rects = await platform.getElementRects({
+      reference,
+      floating,
+      strategy
+    });
+    let {
+      x,
+      y
+    } = computeCoordsFromPlacement(rects, placement, rtl);
+    let statefulPlacement = placement;
+    let middlewareData = {};
+    let resetCount = 0;
+    for (let i = 0; i < validMiddleware.length; i++) {
+      const {
+        name,
+        fn
+      } = validMiddleware[i];
+      const {
+        x: nextX,
+        y: nextY,
+        data,
+        reset
+      } = await fn({
+        x,
+        y,
+        initialPlacement: placement,
+        placement: statefulPlacement,
+        strategy,
+        middlewareData,
+        rects,
+        platform,
+        elements: {
+          reference,
+          floating
+        }
+      });
+      x = nextX != null ? nextX : x;
+      y = nextY != null ? nextY : y;
+      middlewareData = {
+        ...middlewareData,
+        [name]: {
+          ...middlewareData[name],
+          ...data
+        }
+      };
+      if (reset && resetCount <= 50) {
+        resetCount++;
+        if (typeof reset === 'object') {
+          if (reset.placement) {
+            statefulPlacement = reset.placement;
+          }
+          if (reset.rects) {
+            rects = reset.rects === true ? await platform.getElementRects({
+              reference,
+              floating,
+              strategy
+            }) : reset.rects;
+          }
+          ({
+            x,
+            y
+          } = computeCoordsFromPlacement(rects, statefulPlacement, rtl));
+        }
+        i = -1;
+      }
+    }
+    return {
+      x,
+      y,
+      placement: statefulPlacement,
+      strategy,
+      middlewareData
+    };
+  };
+
+  /**
+   * Resolves with an object of overflow side offsets that determine how much the
+   * element is overflowing a given clipping boundary on each side.
+   * - positive = overflowing the boundary by that number of pixels
+   * - negative = how many pixels left before it will overflow
+   * - 0 = lies flush with the boundary
+   * @see https://floating-ui.com/docs/detectOverflow
+   */
+  async function detectOverflow(state, options) {
+    var _await$platform$isEle;
+    if (options === void 0) {
+      options = {};
+    }
+    const {
+      x,
+      y,
+      platform,
+      rects,
+      elements,
+      strategy
+    } = state;
+    const {
+      boundary = 'clippingAncestors',
+      rootBoundary = 'viewport',
+      elementContext = 'floating',
+      altBoundary = false,
+      padding = 0
+    } = evaluate(options, state);
+    const paddingObject = getPaddingObject(padding);
+    const altContext = elementContext === 'floating' ? 'reference' : 'floating';
+    const element = elements[altBoundary ? altContext : elementContext];
+    const clippingClientRect = rectToClientRect(await platform.getClippingRect({
+      element: ((_await$platform$isEle = await (platform.isElement == null ? void 0 : platform.isElement(element))) != null ? _await$platform$isEle : true) ? element : element.contextElement || (await (platform.getDocumentElement == null ? void 0 : platform.getDocumentElement(elements.floating))),
+      boundary,
+      rootBoundary,
+      strategy
+    }));
+    const rect = elementContext === 'floating' ? {
+      x,
+      y,
+      width: rects.floating.width,
+      height: rects.floating.height
+    } : rects.reference;
+    const offsetParent = await (platform.getOffsetParent == null ? void 0 : platform.getOffsetParent(elements.floating));
+    const offsetScale = (await (platform.isElement == null ? void 0 : platform.isElement(offsetParent))) ? (await (platform.getScale == null ? void 0 : platform.getScale(offsetParent))) || {
+      x: 1,
+      y: 1
+    } : {
+      x: 1,
+      y: 1
+    };
+    const elementClientRect = rectToClientRect(platform.convertOffsetParentRelativeRectToViewportRelativeRect ? await platform.convertOffsetParentRelativeRectToViewportRelativeRect({
+      elements,
+      rect,
+      offsetParent,
+      strategy
+    }) : rect);
+    return {
+      top: (clippingClientRect.top - elementClientRect.top + paddingObject.top) / offsetScale.y,
+      bottom: (elementClientRect.bottom - clippingClientRect.bottom + paddingObject.bottom) / offsetScale.y,
+      left: (clippingClientRect.left - elementClientRect.left + paddingObject.left) / offsetScale.x,
+      right: (elementClientRect.right - clippingClientRect.right + paddingObject.right) / offsetScale.x
+    };
+  }
+
+  // For type backwards-compatibility, the `OffsetOptions` type was also
+  // Derivable.
+
+  async function convertValueToCoords(state, options) {
+    const {
+      placement,
+      platform,
+      elements
+    } = state;
+    const rtl = await (platform.isRTL == null ? void 0 : platform.isRTL(elements.floating));
+    const side = getSide(placement);
+    const alignment = getAlignment(placement);
+    const isVertical = getSideAxis(placement) === 'y';
+    const mainAxisMulti = ['left', 'top'].includes(side) ? -1 : 1;
+    const crossAxisMulti = rtl && isVertical ? -1 : 1;
+    const rawValue = evaluate(options, state);
+
+    // eslint-disable-next-line prefer-const
+    let {
+      mainAxis,
+      crossAxis,
+      alignmentAxis
+    } = typeof rawValue === 'number' ? {
+      mainAxis: rawValue,
+      crossAxis: 0,
+      alignmentAxis: null
+    } : {
+      mainAxis: rawValue.mainAxis || 0,
+      crossAxis: rawValue.crossAxis || 0,
+      alignmentAxis: rawValue.alignmentAxis
+    };
+    if (alignment && typeof alignmentAxis === 'number') {
+      crossAxis = alignment === 'end' ? alignmentAxis * -1 : alignmentAxis;
+    }
+    return isVertical ? {
+      x: crossAxis * crossAxisMulti,
+      y: mainAxis * mainAxisMulti
+    } : {
+      x: mainAxis * mainAxisMulti,
+      y: crossAxis * crossAxisMulti
+    };
+  }
+
+  /**
+   * Modifies the placement by translating the floating element along the
+   * specified axes.
+   * A number (shorthand for `mainAxis` or distance), or an axes configuration
+   * object may be passed.
+   * @see https://floating-ui.com/docs/offset
+   */
+  const offset$1 = function (options) {
+    if (options === void 0) {
+      options = 0;
+    }
+    return {
+      name: 'offset',
+      options,
+      async fn(state) {
+        var _middlewareData$offse, _middlewareData$arrow;
+        const {
+          x,
+          y,
+          placement,
+          middlewareData
+        } = state;
+        const diffCoords = await convertValueToCoords(state, options);
+
+        // If the placement is the same and the arrow caused an alignment offset
+        // then we don't need to change the positioning coordinates.
+        if (placement === ((_middlewareData$offse = middlewareData.offset) == null ? void 0 : _middlewareData$offse.placement) && (_middlewareData$arrow = middlewareData.arrow) != null && _middlewareData$arrow.alignmentOffset) {
+          return {};
+        }
+        return {
+          x: x + diffCoords.x,
+          y: y + diffCoords.y,
+          data: {
+            ...diffCoords,
+            placement
+          }
+        };
+      }
+    };
+  };
+
+  /**
+   * Optimizes the visibility of the floating element by shifting it in order to
+   * keep it in view when it will overflow the clipping boundary.
+   * @see https://floating-ui.com/docs/shift
+   */
+  const shift$1 = function (options) {
+    if (options === void 0) {
+      options = {};
+    }
+    return {
+      name: 'shift',
+      options,
+      async fn(state) {
+        const {
+          x,
+          y,
+          placement
+        } = state;
+        const {
+          mainAxis: checkMainAxis = true,
+          crossAxis: checkCrossAxis = false,
+          limiter = {
+            fn: _ref => {
+              let {
+                x,
+                y
+              } = _ref;
+              return {
+                x,
+                y
+              };
+            }
+          },
+          ...detectOverflowOptions
+        } = evaluate(options, state);
+        const coords = {
+          x,
+          y
+        };
+        const overflow = await detectOverflow(state, detectOverflowOptions);
+        const crossAxis = getSideAxis(getSide(placement));
+        const mainAxis = getOppositeAxis(crossAxis);
+        let mainAxisCoord = coords[mainAxis];
+        let crossAxisCoord = coords[crossAxis];
+        if (checkMainAxis) {
+          const minSide = mainAxis === 'y' ? 'top' : 'left';
+          const maxSide = mainAxis === 'y' ? 'bottom' : 'right';
+          const min = mainAxisCoord + overflow[minSide];
+          const max = mainAxisCoord - overflow[maxSide];
+          mainAxisCoord = clamp(min, mainAxisCoord, max);
+        }
+        if (checkCrossAxis) {
+          const minSide = crossAxis === 'y' ? 'top' : 'left';
+          const maxSide = crossAxis === 'y' ? 'bottom' : 'right';
+          const min = crossAxisCoord + overflow[minSide];
+          const max = crossAxisCoord - overflow[maxSide];
+          crossAxisCoord = clamp(min, crossAxisCoord, max);
+        }
+        const limitedCoords = limiter.fn({
+          ...state,
+          [mainAxis]: mainAxisCoord,
+          [crossAxis]: crossAxisCoord
+        });
+        return {
+          ...limitedCoords,
+          data: {
+            x: limitedCoords.x - x,
+            y: limitedCoords.y - y,
+            enabled: {
+              [mainAxis]: checkMainAxis,
+              [crossAxis]: checkCrossAxis
+            }
+          }
+        };
+      }
+    };
+  };
+
+  function hasWindow() {
+    return typeof window !== 'undefined';
+  }
+  function getNodeName(node) {
+    if (isNode(node)) {
+      return (node.nodeName || '').toLowerCase();
+    }
+    // Mocked nodes in testing environments may not be instances of Node. By
+    // returning `#document` an infinite loop won't occur.
+    // https://github.com/floating-ui/floating-ui/issues/2317
+    return '#document';
+  }
+  function getWindow(node) {
+    var _node$ownerDocument;
+    return (node == null || (_node$ownerDocument = node.ownerDocument) == null ? void 0 : _node$ownerDocument.defaultView) || window;
+  }
+  function getDocumentElement(node) {
+    var _ref;
+    return (_ref = (isNode(node) ? node.ownerDocument : node.document) || window.document) == null ? void 0 : _ref.documentElement;
+  }
+  function isNode(value) {
+    if (!hasWindow()) {
+      return false;
+    }
+    return value instanceof Node || value instanceof getWindow(value).Node;
+  }
+  function isElement(value) {
+    if (!hasWindow()) {
+      return false;
+    }
+    return value instanceof Element || value instanceof getWindow(value).Element;
+  }
+  function isHTMLElement(value) {
+    if (!hasWindow()) {
+      return false;
+    }
+    return value instanceof HTMLElement || value instanceof getWindow(value).HTMLElement;
+  }
+  function isShadowRoot(value) {
+    if (!hasWindow() || typeof ShadowRoot === 'undefined') {
+      return false;
+    }
+    return value instanceof ShadowRoot || value instanceof getWindow(value).ShadowRoot;
+  }
+  function isOverflowElement(element) {
+    const {
+      overflow,
+      overflowX,
+      overflowY,
+      display
+    } = getComputedStyle$1(element);
+    return /auto|scroll|overlay|hidden|clip/.test(overflow + overflowY + overflowX) && !['inline', 'contents'].includes(display);
+  }
+  function isTableElement(element) {
+    return ['table', 'td', 'th'].includes(getNodeName(element));
+  }
+  function isTopLayer(element) {
+    return [':popover-open', ':modal'].some(selector => {
+      try {
+        return element.matches(selector);
+      } catch (e) {
+        return false;
+      }
+    });
+  }
+  function isContainingBlock(elementOrCss) {
+    const webkit = isWebKit();
+    const css = isElement(elementOrCss) ? getComputedStyle$1(elementOrCss) : elementOrCss;
+
+    // https://developer.mozilla.org/en-US/docs/Web/CSS/Containing_block#identifying_the_containing_block
+    return css.transform !== 'none' || css.perspective !== 'none' || (css.containerType ? css.containerType !== 'normal' : false) || !webkit && (css.backdropFilter ? css.backdropFilter !== 'none' : false) || !webkit && (css.filter ? css.filter !== 'none' : false) || ['transform', 'perspective', 'filter'].some(value => (css.willChange || '').includes(value)) || ['paint', 'layout', 'strict', 'content'].some(value => (css.contain || '').includes(value));
+  }
+  function getContainingBlock(element) {
+    let currentNode = getParentNode(element);
+    while (isHTMLElement(currentNode) && !isLastTraversableNode(currentNode)) {
+      if (isContainingBlock(currentNode)) {
+        return currentNode;
+      } else if (isTopLayer(currentNode)) {
+        return null;
+      }
+      currentNode = getParentNode(currentNode);
+    }
+    return null;
+  }
+  function isWebKit() {
+    if (typeof CSS === 'undefined' || !CSS.supports) return false;
+    return CSS.supports('-webkit-backdrop-filter', 'none');
+  }
+  function isLastTraversableNode(node) {
+    return ['html', 'body', '#document'].includes(getNodeName(node));
+  }
+  function getComputedStyle$1(element) {
+    return getWindow(element).getComputedStyle(element);
+  }
+  function getNodeScroll(element) {
+    if (isElement(element)) {
+      return {
+        scrollLeft: element.scrollLeft,
+        scrollTop: element.scrollTop
+      };
+    }
+    return {
+      scrollLeft: element.scrollX,
+      scrollTop: element.scrollY
+    };
+  }
+  function getParentNode(node) {
+    if (getNodeName(node) === 'html') {
+      return node;
+    }
+    const result =
+    // Step into the shadow DOM of the parent of a slotted node.
+    node.assignedSlot ||
+    // DOM Element detected.
+    node.parentNode ||
+    // ShadowRoot detected.
+    isShadowRoot(node) && node.host ||
+    // Fallback.
+    getDocumentElement(node);
+    return isShadowRoot(result) ? result.host : result;
+  }
+  function getNearestOverflowAncestor(node) {
+    const parentNode = getParentNode(node);
+    if (isLastTraversableNode(parentNode)) {
+      return node.ownerDocument ? node.ownerDocument.body : node.body;
+    }
+    if (isHTMLElement(parentNode) && isOverflowElement(parentNode)) {
+      return parentNode;
+    }
+    return getNearestOverflowAncestor(parentNode);
+  }
+  function getOverflowAncestors(node, list, traverseIframes) {
+    var _node$ownerDocument2;
+    if (list === void 0) {
+      list = [];
+    }
+    if (traverseIframes === void 0) {
+      traverseIframes = true;
+    }
+    const scrollableAncestor = getNearestOverflowAncestor(node);
+    const isBody = scrollableAncestor === ((_node$ownerDocument2 = node.ownerDocument) == null ? void 0 : _node$ownerDocument2.body);
+    const win = getWindow(scrollableAncestor);
+    if (isBody) {
+      const frameElement = getFrameElement(win);
+      return list.concat(win, win.visualViewport || [], isOverflowElement(scrollableAncestor) ? scrollableAncestor : [], frameElement && traverseIframes ? getOverflowAncestors(frameElement) : []);
+    }
+    return list.concat(scrollableAncestor, getOverflowAncestors(scrollableAncestor, [], traverseIframes));
+  }
+  function getFrameElement(win) {
+    return win.parent && Object.getPrototypeOf(win.parent) ? win.frameElement : null;
+  }
+
+  function getCssDimensions(element) {
+    const css = getComputedStyle$1(element);
+    // In testing environments, the `width` and `height` properties are empty
+    // strings for SVG elements, returning NaN. Fallback to `0` in this case.
+    let width = parseFloat(css.width) || 0;
+    let height = parseFloat(css.height) || 0;
+    const hasOffset = isHTMLElement(element);
+    const offsetWidth = hasOffset ? element.offsetWidth : width;
+    const offsetHeight = hasOffset ? element.offsetHeight : height;
+    const shouldFallback = round(width) !== offsetWidth || round(height) !== offsetHeight;
+    if (shouldFallback) {
+      width = offsetWidth;
+      height = offsetHeight;
+    }
+    return {
+      width,
+      height,
+      $: shouldFallback
+    };
+  }
+
+  function unwrapElement(element) {
+    return !isElement(element) ? element.contextElement : element;
+  }
+
+  function getScale(element) {
+    const domElement = unwrapElement(element);
+    if (!isHTMLElement(domElement)) {
+      return createCoords(1);
+    }
+    const rect = domElement.getBoundingClientRect();
+    const {
+      width,
+      height,
+      $
+    } = getCssDimensions(domElement);
+    let x = ($ ? round(rect.width) : rect.width) / width;
+    let y = ($ ? round(rect.height) : rect.height) / height;
+
+    // 0, NaN, or Infinity should always fallback to 1.
+
+    if (!x || !Number.isFinite(x)) {
+      x = 1;
+    }
+    if (!y || !Number.isFinite(y)) {
+      y = 1;
+    }
+    return {
+      x,
+      y
+    };
+  }
+
+  const noOffsets = /*#__PURE__*/createCoords(0);
+  function getVisualOffsets(element) {
+    const win = getWindow(element);
+    if (!isWebKit() || !win.visualViewport) {
+      return noOffsets;
+    }
+    return {
+      x: win.visualViewport.offsetLeft,
+      y: win.visualViewport.offsetTop
+    };
+  }
+  function shouldAddVisualOffsets(element, isFixed, floatingOffsetParent) {
+    if (isFixed === void 0) {
+      isFixed = false;
+    }
+    if (!floatingOffsetParent || isFixed && floatingOffsetParent !== getWindow(element)) {
+      return false;
+    }
+    return isFixed;
+  }
+
+  function getBoundingClientRect(element, includeScale, isFixedStrategy, offsetParent) {
+    if (includeScale === void 0) {
+      includeScale = false;
+    }
+    if (isFixedStrategy === void 0) {
+      isFixedStrategy = false;
+    }
+    const clientRect = element.getBoundingClientRect();
+    const domElement = unwrapElement(element);
+    let scale = createCoords(1);
+    if (includeScale) {
+      if (offsetParent) {
+        if (isElement(offsetParent)) {
+          scale = getScale(offsetParent);
+        }
+      } else {
+        scale = getScale(element);
+      }
+    }
+    const visualOffsets = shouldAddVisualOffsets(domElement, isFixedStrategy, offsetParent) ? getVisualOffsets(domElement) : createCoords(0);
+    let x = (clientRect.left + visualOffsets.x) / scale.x;
+    let y = (clientRect.top + visualOffsets.y) / scale.y;
+    let width = clientRect.width / scale.x;
+    let height = clientRect.height / scale.y;
+    if (domElement) {
+      const win = getWindow(domElement);
+      const offsetWin = offsetParent && isElement(offsetParent) ? getWindow(offsetParent) : offsetParent;
+      let currentWin = win;
+      let currentIFrame = getFrameElement(currentWin);
+      while (currentIFrame && offsetParent && offsetWin !== currentWin) {
+        const iframeScale = getScale(currentIFrame);
+        const iframeRect = currentIFrame.getBoundingClientRect();
+        const css = getComputedStyle$1(currentIFrame);
+        const left = iframeRect.left + (currentIFrame.clientLeft + parseFloat(css.paddingLeft)) * iframeScale.x;
+        const top = iframeRect.top + (currentIFrame.clientTop + parseFloat(css.paddingTop)) * iframeScale.y;
+        x *= iframeScale.x;
+        y *= iframeScale.y;
+        width *= iframeScale.x;
+        height *= iframeScale.y;
+        x += left;
+        y += top;
+        currentWin = getWindow(currentIFrame);
+        currentIFrame = getFrameElement(currentWin);
+      }
+    }
+    return rectToClientRect({
+      width,
+      height,
+      x,
+      y
+    });
+  }
+
+  function convertOffsetParentRelativeRectToViewportRelativeRect(_ref) {
+    let {
+      elements,
+      rect,
+      offsetParent,
+      strategy
+    } = _ref;
+    const isFixed = strategy === 'fixed';
+    const documentElement = getDocumentElement(offsetParent);
+    const topLayer = elements ? isTopLayer(elements.floating) : false;
+    if (offsetParent === documentElement || topLayer && isFixed) {
+      return rect;
+    }
+    let scroll = {
+      scrollLeft: 0,
+      scrollTop: 0
+    };
+    let scale = createCoords(1);
+    const offsets = createCoords(0);
+    const isOffsetParentAnElement = isHTMLElement(offsetParent);
+    if (isOffsetParentAnElement || !isOffsetParentAnElement && !isFixed) {
+      if (getNodeName(offsetParent) !== 'body' || isOverflowElement(documentElement)) {
+        scroll = getNodeScroll(offsetParent);
+      }
+      if (isHTMLElement(offsetParent)) {
+        const offsetRect = getBoundingClientRect(offsetParent);
+        scale = getScale(offsetParent);
+        offsets.x = offsetRect.x + offsetParent.clientLeft;
+        offsets.y = offsetRect.y + offsetParent.clientTop;
+      }
+    }
+    return {
+      width: rect.width * scale.x,
+      height: rect.height * scale.y,
+      x: rect.x * scale.x - scroll.scrollLeft * scale.x + offsets.x,
+      y: rect.y * scale.y - scroll.scrollTop * scale.y + offsets.y
+    };
+  }
+
+  function getClientRects(element) {
+    return Array.from(element.getClientRects());
+  }
+
+  // If <html> has a CSS width greater than the viewport, then this will be
+  // incorrect for RTL.
+  function getWindowScrollBarX(element, rect) {
+    const leftScroll = getNodeScroll(element).scrollLeft;
+    if (!rect) {
+      return getBoundingClientRect(getDocumentElement(element)).left + leftScroll;
+    }
+    return rect.left + leftScroll;
+  }
+
+  // Gets the entire size of the scrollable document area, even extending outside
+  // of the `<html>` and `<body>` rect bounds if horizontally scrollable.
+  function getDocumentRect(element) {
+    const html = getDocumentElement(element);
+    const scroll = getNodeScroll(element);
+    const body = element.ownerDocument.body;
+    const width = max(html.scrollWidth, html.clientWidth, body.scrollWidth, body.clientWidth);
+    const height = max(html.scrollHeight, html.clientHeight, body.scrollHeight, body.clientHeight);
+    let x = -scroll.scrollLeft + getWindowScrollBarX(element);
+    const y = -scroll.scrollTop;
+    if (getComputedStyle$1(body).direction === 'rtl') {
+      x += max(html.clientWidth, body.clientWidth) - width;
+    }
+    return {
+      width,
+      height,
+      x,
+      y
+    };
+  }
+
+  function getViewportRect(element, strategy) {
+    const win = getWindow(element);
+    const html = getDocumentElement(element);
+    const visualViewport = win.visualViewport;
+    let width = html.clientWidth;
+    let height = html.clientHeight;
+    let x = 0;
+    let y = 0;
+    if (visualViewport) {
+      width = visualViewport.width;
+      height = visualViewport.height;
+      const visualViewportBased = isWebKit();
+      if (!visualViewportBased || visualViewportBased && strategy === 'fixed') {
+        x = visualViewport.offsetLeft;
+        y = visualViewport.offsetTop;
+      }
+    }
+    return {
+      width,
+      height,
+      x,
+      y
+    };
+  }
+
+  // Returns the inner client rect, subtracting scrollbars if present.
+  function getInnerBoundingClientRect(element, strategy) {
+    const clientRect = getBoundingClientRect(element, true, strategy === 'fixed');
+    const top = clientRect.top + element.clientTop;
+    const left = clientRect.left + element.clientLeft;
+    const scale = isHTMLElement(element) ? getScale(element) : createCoords(1);
+    const width = element.clientWidth * scale.x;
+    const height = element.clientHeight * scale.y;
+    const x = left * scale.x;
+    const y = top * scale.y;
+    return {
+      width,
+      height,
+      x,
+      y
+    };
+  }
+  function getClientRectFromClippingAncestor(element, clippingAncestor, strategy) {
+    let rect;
+    if (clippingAncestor === 'viewport') {
+      rect = getViewportRect(element, strategy);
+    } else if (clippingAncestor === 'document') {
+      rect = getDocumentRect(getDocumentElement(element));
+    } else if (isElement(clippingAncestor)) {
+      rect = getInnerBoundingClientRect(clippingAncestor, strategy);
+    } else {
+      const visualOffsets = getVisualOffsets(element);
+      rect = {
+        ...clippingAncestor,
+        x: clippingAncestor.x - visualOffsets.x,
+        y: clippingAncestor.y - visualOffsets.y
+      };
+    }
+    return rectToClientRect(rect);
+  }
+  function hasFixedPositionAncestor(element, stopNode) {
+    const parentNode = getParentNode(element);
+    if (parentNode === stopNode || !isElement(parentNode) || isLastTraversableNode(parentNode)) {
+      return false;
+    }
+    return getComputedStyle$1(parentNode).position === 'fixed' || hasFixedPositionAncestor(parentNode, stopNode);
+  }
+
+  // A "clipping ancestor" is an `overflow` element with the characteristic of
+  // clipping (or hiding) child elements. This returns all clipping ancestors
+  // of the given element up the tree.
+  function getClippingElementAncestors(element, cache) {
+    const cachedResult = cache.get(element);
+    if (cachedResult) {
+      return cachedResult;
+    }
+    let result = getOverflowAncestors(element, [], false).filter(el => isElement(el) && getNodeName(el) !== 'body');
+    let currentContainingBlockComputedStyle = null;
+    const elementIsFixed = getComputedStyle$1(element).position === 'fixed';
+    let currentNode = elementIsFixed ? getParentNode(element) : element;
+
+    // https://developer.mozilla.org/en-US/docs/Web/CSS/Containing_block#identifying_the_containing_block
+    while (isElement(currentNode) && !isLastTraversableNode(currentNode)) {
+      const computedStyle = getComputedStyle$1(currentNode);
+      const currentNodeIsContaining = isContainingBlock(currentNode);
+      if (!currentNodeIsContaining && computedStyle.position === 'fixed') {
+        currentContainingBlockComputedStyle = null;
+      }
+      const shouldDropCurrentNode = elementIsFixed ? !currentNodeIsContaining && !currentContainingBlockComputedStyle : !currentNodeIsContaining && computedStyle.position === 'static' && !!currentContainingBlockComputedStyle && ['absolute', 'fixed'].includes(currentContainingBlockComputedStyle.position) || isOverflowElement(currentNode) && !currentNodeIsContaining && hasFixedPositionAncestor(element, currentNode);
+      if (shouldDropCurrentNode) {
+        // Drop non-containing blocks.
+        result = result.filter(ancestor => ancestor !== currentNode);
+      } else {
+        // Record last containing block for next iteration.
+        currentContainingBlockComputedStyle = computedStyle;
+      }
+      currentNode = getParentNode(currentNode);
+    }
+    cache.set(element, result);
+    return result;
+  }
+
+  // Gets the maximum area that the element is visible in due to any number of
+  // clipping ancestors.
+  function getClippingRect(_ref) {
+    let {
+      element,
+      boundary,
+      rootBoundary,
+      strategy
+    } = _ref;
+    const elementClippingAncestors = boundary === 'clippingAncestors' ? isTopLayer(element) ? [] : getClippingElementAncestors(element, this._c) : [].concat(boundary);
+    const clippingAncestors = [...elementClippingAncestors, rootBoundary];
+    const firstClippingAncestor = clippingAncestors[0];
+    const clippingRect = clippingAncestors.reduce((accRect, clippingAncestor) => {
+      const rect = getClientRectFromClippingAncestor(element, clippingAncestor, strategy);
+      accRect.top = max(rect.top, accRect.top);
+      accRect.right = min(rect.right, accRect.right);
+      accRect.bottom = min(rect.bottom, accRect.bottom);
+      accRect.left = max(rect.left, accRect.left);
+      return accRect;
+    }, getClientRectFromClippingAncestor(element, firstClippingAncestor, strategy));
+    return {
+      width: clippingRect.right - clippingRect.left,
+      height: clippingRect.bottom - clippingRect.top,
+      x: clippingRect.left,
+      y: clippingRect.top
+    };
+  }
+
+  function getDimensions(element) {
+    const {
+      width,
+      height
+    } = getCssDimensions(element);
+    return {
+      width,
+      height
+    };
+  }
+
+  function getRectRelativeToOffsetParent(element, offsetParent, strategy) {
+    const isOffsetParentAnElement = isHTMLElement(offsetParent);
+    const documentElement = getDocumentElement(offsetParent);
+    const isFixed = strategy === 'fixed';
+    const rect = getBoundingClientRect(element, true, isFixed, offsetParent);
+    let scroll = {
+      scrollLeft: 0,
+      scrollTop: 0
+    };
+    const offsets = createCoords(0);
+    if (isOffsetParentAnElement || !isOffsetParentAnElement && !isFixed) {
+      if (getNodeName(offsetParent) !== 'body' || isOverflowElement(documentElement)) {
+        scroll = getNodeScroll(offsetParent);
+      }
+      if (isOffsetParentAnElement) {
+        const offsetRect = getBoundingClientRect(offsetParent, true, isFixed, offsetParent);
+        offsets.x = offsetRect.x + offsetParent.clientLeft;
+        offsets.y = offsetRect.y + offsetParent.clientTop;
+      } else if (documentElement) {
+        // If the <body> scrollbar appears on the left (e.g. RTL systems). Use
+        // Firefox with layout.scrollbar.side = 3 in about:config to test this.
+        offsets.x = getWindowScrollBarX(documentElement);
+      }
+    }
+    let htmlX = 0;
+    let htmlY = 0;
+    if (documentElement && !isOffsetParentAnElement && !isFixed) {
+      const htmlRect = documentElement.getBoundingClientRect();
+      htmlY = htmlRect.top + scroll.scrollTop;
+      htmlX = htmlRect.left + scroll.scrollLeft -
+      // RTL <body> scrollbar.
+      getWindowScrollBarX(documentElement, htmlRect);
+    }
+    const x = rect.left + scroll.scrollLeft - offsets.x - htmlX;
+    const y = rect.top + scroll.scrollTop - offsets.y - htmlY;
+    return {
+      x,
+      y,
+      width: rect.width,
+      height: rect.height
+    };
+  }
+
+  function isStaticPositioned(element) {
+    return getComputedStyle$1(element).position === 'static';
+  }
+
+  function getTrueOffsetParent(element, polyfill) {
+    if (!isHTMLElement(element) || getComputedStyle$1(element).position === 'fixed') {
+      return null;
+    }
+    if (polyfill) {
+      return polyfill(element);
+    }
+    let rawOffsetParent = element.offsetParent;
+
+    // Firefox returns the <html> element as the offsetParent if it's non-static,
+    // while Chrome and Safari return the <body> element. The <body> element must
+    // be used to perform the correct calculations even if the <html> element is
+    // non-static.
+    if (getDocumentElement(element) === rawOffsetParent) {
+      rawOffsetParent = rawOffsetParent.ownerDocument.body;
+    }
+    return rawOffsetParent;
+  }
+
+  // Gets the closest ancestor positioned element. Handles some edge cases,
+  // such as table ancestors and cross browser bugs.
+  function getOffsetParent(element, polyfill) {
+    const win = getWindow(element);
+    if (isTopLayer(element)) {
+      return win;
+    }
+    if (!isHTMLElement(element)) {
+      let svgOffsetParent = getParentNode(element);
+      while (svgOffsetParent && !isLastTraversableNode(svgOffsetParent)) {
+        if (isElement(svgOffsetParent) && !isStaticPositioned(svgOffsetParent)) {
+          return svgOffsetParent;
+        }
+        svgOffsetParent = getParentNode(svgOffsetParent);
+      }
+      return win;
+    }
+    let offsetParent = getTrueOffsetParent(element, polyfill);
+    while (offsetParent && isTableElement(offsetParent) && isStaticPositioned(offsetParent)) {
+      offsetParent = getTrueOffsetParent(offsetParent, polyfill);
+    }
+    if (offsetParent && isLastTraversableNode(offsetParent) && isStaticPositioned(offsetParent) && !isContainingBlock(offsetParent)) {
+      return win;
+    }
+    return offsetParent || getContainingBlock(element) || win;
+  }
+
+  const getElementRects = async function (data) {
+    const getOffsetParentFn = this.getOffsetParent || getOffsetParent;
+    const getDimensionsFn = this.getDimensions;
+    const floatingDimensions = await getDimensionsFn(data.floating);
+    return {
+      reference: getRectRelativeToOffsetParent(data.reference, await getOffsetParentFn(data.floating), data.strategy),
+      floating: {
+        x: 0,
+        y: 0,
+        width: floatingDimensions.width,
+        height: floatingDimensions.height
+      }
+    };
+  };
+
+  function isRTL(element) {
+    return getComputedStyle$1(element).direction === 'rtl';
+  }
+
+  const platform = {
+    convertOffsetParentRelativeRectToViewportRelativeRect,
+    getDocumentElement,
+    getClippingRect,
+    getOffsetParent,
+    getElementRects,
+    getClientRects,
+    getDimensions,
+    getScale,
+    isElement,
+    isRTL
+  };
+
+  /**
+   * Modifies the placement by translating the floating element along the
+   * specified axes.
+   * A number (shorthand for `mainAxis` or distance), or an axes configuration
+   * object may be passed.
+   * @see https://floating-ui.com/docs/offset
+   */
+  const offset = offset$1;
+
+  /**
+   * Optimizes the visibility of the floating element by shifting it in order to
+   * keep it in view when it will overflow the clipping boundary.
+   * @see https://floating-ui.com/docs/shift
+   */
+  const shift = shift$1;
+
+  /**
+   * Computes the `x` and `y` coordinates that will place the floating element
+   * next to a given reference element.
+   */
+  const computePosition = (reference, floating, options) => {
+    // This caches the expensive `getClippingElementAncestors` function so that
+    // multiple lifecycle resets re-use the same result. It only lives for a
+    // single call. If other functions become expensive, we can add them as well.
+    const cache = new Map();
+    const mergedOptions = {
+      platform,
+      ...options
+    };
+    const platformWithCache = {
+      ...mergedOptions.platform,
+      _c: cache
+    };
+    return computePosition$1(reference, floating, {
+      ...mergedOptions,
+      platform: platformWithCache
+    });
+  };
+
+  const centerOffset = offset(({
+    rects
+  }) => {
+    console.log(rects.reference);
+    return -rects.reference.height / 2 + rects.floating.height / 2;
+  });
   var Util = {
+    // 包装floating-ui的computePosition方法让其支持居中显示 #https://floating-ui.com/docs/offset#creating-custom-placements
+    computePosition(referenceEl, floatingEl, options) {
+      const isCentered = options.placement === "center";
+      const placement = isCentered ? "bottom" : options.placement;
+      const middleware = [...(options.middleware || []), isCentered && centerOffset];
+      return computePosition(referenceEl, floatingEl, {
+        ...options,
+        placement,
+        middleware
+      });
+    },
     getLayeroByIndex(index) {
       return $$1(`#${Constants.CLASSES.layuiLayer}${index}`);
     },
@@ -1146,6 +2267,44 @@
   }
 
   /**
+   * Does a generic check to check that the given payload is of a given type. In cases like Number, it
+   * will return true for NaN as NaN is a Number (thanks javascript!); It will, however, differentiate
+   * between object and null
+   *
+   * @throws {TypeError} Will throw type error if type is an invalid type
+   */
+  function isType(payload, type) {
+      if (!(type instanceof Function)) {
+          throw new TypeError('Type must be a function');
+      }
+      if (!Object.prototype.hasOwnProperty.call(type, 'prototype')) {
+          throw new TypeError('Type is not a class');
+      }
+      // Classes usually have names (as functions usually have names)
+      const name = type.name;
+      return getType(payload) === name || Boolean(payload && payload.constructor === type);
+  }
+
+  function isInstanceOf(value, classOrClassName) {
+      if (typeof classOrClassName === 'function') {
+          for (let p = value; p; p = Object.getPrototypeOf(p)) {
+              if (isType(p, classOrClassName)) {
+                  return true;
+              }
+          }
+          return false;
+      }
+      else {
+          for (let p = value; p; p = Object.getPrototypeOf(p)) {
+              if (getType(p) === classOrClassName) {
+                  return true;
+              }
+          }
+          return false;
+      }
+  }
+
+  /**
    * Returns whether the payload is a number (but not NaN)
    *
    * This will return `false` for `NaN`!!
@@ -1165,7 +2324,6 @@
   class HTMLGenerator {
     // 索引
     constructor(config, index) {
-      console.log("HTMLGenerator");
       this.config = config;
       this.index = index;
       //计算索引值
@@ -1283,7 +2441,10 @@
       const isPageType = this.config.type === MAP.TYPE.PAGE;
 
       // 如果是 PAGE 类型并且 conType 存在，返回空字符串
-      if (isPageType && isObject(this.config.content)) {
+
+      console.log(this.config.content);
+      if (isPageType && isInstanceOf(this.config.content, $$1)) {
+        console.log('页面类型');
         return "";
       }
 
@@ -1338,7 +2499,6 @@
       if (isString(this.config.btn)) {
         this.config.btn = [this.config.btn];
       }
-      console.log(this.config.btn);
 
       // 遍历按钮数组，生成按钮的 HTML 字符串
       this.config.btn.forEach((btnLabel, i) => {
@@ -1655,6 +2815,978 @@
     }
   }
 
+  function getDefaultExportFromCjs (x) {
+  	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
+  }
+
+  var draggabilly$1 = {exports: {}};
+
+  var getSize = {exports: {}};
+
+  /*!
+   * Infinite Scroll v2.0.4
+   * measure size of elements
+   * MIT license
+   */
+
+  var hasRequiredGetSize;
+
+  function requireGetSize () {
+  	if (hasRequiredGetSize) return getSize.exports;
+  	hasRequiredGetSize = 1;
+  	(function (module) {
+  		( function( window, factory ) {
+  		  if ( module.exports ) {
+  		    // CommonJS
+  		    module.exports = factory();
+  		  } else {
+  		    // browser global
+  		    window.getSize = factory();
+  		  }
+
+  		} )( window, function factory() {
+
+  		// -------------------------- helpers -------------------------- //
+
+  		// get a number from a string, not a percentage
+  		function getStyleSize( value ) {
+  		  let num = parseFloat( value );
+  		  // not a percent like '100%', and a number
+  		  let isValid = value.indexOf('%') == -1 && !isNaN( num );
+  		  return isValid && num;
+  		}
+
+  		// -------------------------- measurements -------------------------- //
+
+  		let measurements = [
+  		  'paddingLeft',
+  		  'paddingRight',
+  		  'paddingTop',
+  		  'paddingBottom',
+  		  'marginLeft',
+  		  'marginRight',
+  		  'marginTop',
+  		  'marginBottom',
+  		  'borderLeftWidth',
+  		  'borderRightWidth',
+  		  'borderTopWidth',
+  		  'borderBottomWidth',
+  		];
+
+  		function getZeroSize() {
+  		  let size = {
+  		    width: 0,
+  		    height: 0,
+  		    innerWidth: 0,
+  		    innerHeight: 0,
+  		    outerWidth: 0,
+  		    outerHeight: 0,
+  		  };
+  		  measurements.forEach( ( measurement ) => {
+  		    size[ measurement ] = 0;
+  		  } );
+  		  return size;
+  		}
+
+  		// -------------------------- getSize -------------------------- //
+
+  		function getSize( elem ) {
+  		  // use querySeletor if elem is string
+  		  if ( typeof elem == 'string' ) elem = document.querySelector( elem );
+
+  		  // do not proceed on non-objects
+  		  let isElement = elem && typeof elem == 'object' && elem.nodeType;
+  		  if ( !isElement ) return;
+
+  		  let style = getComputedStyle( elem );
+
+  		  // if hidden, everything is 0
+  		  if ( style.display == 'none' ) return getZeroSize();
+
+  		  let size = {};
+  		  size.width = elem.offsetWidth;
+  		  size.height = elem.offsetHeight;
+
+  		  let isBorderBox = size.isBorderBox = style.boxSizing == 'border-box';
+
+  		  // get all measurements
+  		  measurements.forEach( ( measurement ) => {
+  		    let value = style[ measurement ];
+  		    let num = parseFloat( value );
+  		    // any 'auto', 'medium' value will be 0
+  		    size[ measurement ] = !isNaN( num ) ? num : 0;
+  		  } );
+
+  		  let paddingWidth = size.paddingLeft + size.paddingRight;
+  		  let paddingHeight = size.paddingTop + size.paddingBottom;
+  		  let marginWidth = size.marginLeft + size.marginRight;
+  		  let marginHeight = size.marginTop + size.marginBottom;
+  		  let borderWidth = size.borderLeftWidth + size.borderRightWidth;
+  		  let borderHeight = size.borderTopWidth + size.borderBottomWidth;
+
+  		  // overwrite width and height if we can get it from style
+  		  let styleWidth = getStyleSize( style.width );
+  		  if ( styleWidth !== false ) {
+  		    size.width = styleWidth +
+  		      // add padding and border unless it's already including it
+  		      ( isBorderBox ? 0 : paddingWidth + borderWidth );
+  		  }
+
+  		  let styleHeight = getStyleSize( style.height );
+  		  if ( styleHeight !== false ) {
+  		    size.height = styleHeight +
+  		      // add padding and border unless it's already including it
+  		      ( isBorderBox ? 0 : paddingHeight + borderHeight );
+  		  }
+
+  		  size.innerWidth = size.width - ( paddingWidth + borderWidth );
+  		  size.innerHeight = size.height - ( paddingHeight + borderHeight );
+
+  		  size.outerWidth = size.width + marginWidth;
+  		  size.outerHeight = size.height + marginHeight;
+
+  		  return size;
+  		}
+
+  		return getSize;
+
+  		} ); 
+  	} (getSize));
+  	return getSize.exports;
+  }
+
+  var unidragger$1 = {exports: {}};
+
+  var evEmitter$1 = {exports: {}};
+
+  /**
+   * EvEmitter v2.1.1
+   * Lil' event emitter
+   * MIT License
+   */
+  var evEmitter = evEmitter$1.exports;
+
+  var hasRequiredEvEmitter;
+
+  function requireEvEmitter () {
+  	if (hasRequiredEvEmitter) return evEmitter$1.exports;
+  	hasRequiredEvEmitter = 1;
+  	(function (module) {
+  		( function( global, factory ) {
+  		  // universal module definition
+  		  if ( module.exports ) {
+  		    // CommonJS - Browserify, Webpack
+  		    module.exports = factory();
+  		  } else {
+  		    // Browser globals
+  		    global.EvEmitter = factory();
+  		  }
+
+  		}( typeof window != 'undefined' ? window : evEmitter, function() {
+
+  		function EvEmitter() {}
+
+  		let proto = EvEmitter.prototype;
+
+  		proto.on = function( eventName, listener ) {
+  		  if ( !eventName || !listener ) return this;
+
+  		  // set events hash
+  		  let events = this._events = this._events || {};
+  		  // set listeners array
+  		  let listeners = events[ eventName ] = events[ eventName ] || [];
+  		  // only add once
+  		  if ( !listeners.includes( listener ) ) {
+  		    listeners.push( listener );
+  		  }
+
+  		  return this;
+  		};
+
+  		proto.once = function( eventName, listener ) {
+  		  if ( !eventName || !listener ) return this;
+
+  		  // add event
+  		  this.on( eventName, listener );
+  		  // set once flag
+  		  // set onceEvents hash
+  		  let onceEvents = this._onceEvents = this._onceEvents || {};
+  		  // set onceListeners object
+  		  let onceListeners = onceEvents[ eventName ] = onceEvents[ eventName ] || {};
+  		  // set flag
+  		  onceListeners[ listener ] = true;
+
+  		  return this;
+  		};
+
+  		proto.off = function( eventName, listener ) {
+  		  let listeners = this._events && this._events[ eventName ];
+  		  if ( !listeners || !listeners.length ) return this;
+
+  		  let index = listeners.indexOf( listener );
+  		  if ( index != -1 ) {
+  		    listeners.splice( index, 1 );
+  		  }
+
+  		  return this;
+  		};
+
+  		proto.emitEvent = function( eventName, args ) {
+  		  let listeners = this._events && this._events[ eventName ];
+  		  if ( !listeners || !listeners.length ) return this;
+
+  		  // copy over to avoid interference if .off() in listener
+  		  listeners = listeners.slice( 0 );
+  		  args = args || [];
+  		  // once stuff
+  		  let onceListeners = this._onceEvents && this._onceEvents[ eventName ];
+
+  		  for ( let listener of listeners ) {
+  		    let isOnce = onceListeners && onceListeners[ listener ];
+  		    if ( isOnce ) {
+  		      // remove listener
+  		      // remove before trigger to prevent recursion
+  		      this.off( eventName, listener );
+  		      // unset once flag
+  		      delete onceListeners[ listener ];
+  		    }
+  		    // trigger listener
+  		    listener.apply( this, args );
+  		  }
+
+  		  return this;
+  		};
+
+  		proto.allOff = function() {
+  		  delete this._events;
+  		  delete this._onceEvents;
+  		  return this;
+  		};
+
+  		return EvEmitter;
+
+  		} ) ); 
+  	} (evEmitter$1));
+  	return evEmitter$1.exports;
+  }
+
+  /*!
+   * Unidragger v3.0.1
+   * Draggable base class
+   * MIT license
+   */
+  var unidragger = unidragger$1.exports;
+
+  var hasRequiredUnidragger;
+
+  function requireUnidragger () {
+  	if (hasRequiredUnidragger) return unidragger$1.exports;
+  	hasRequiredUnidragger = 1;
+  	(function (module) {
+  		( function( window, factory ) {
+  		  // universal module definition
+  		  if ( module.exports ) {
+  		    // CommonJS
+  		    module.exports = factory(
+  		        window,
+  		        requireEvEmitter(),
+  		    );
+  		  } else {
+  		    // browser global
+  		    window.Unidragger = factory(
+  		        window,
+  		        window.EvEmitter,
+  		    );
+  		  }
+
+  		}( typeof window != 'undefined' ? window : unidragger, function factory( window, EvEmitter ) {
+
+  		function Unidragger() {}
+
+  		// inherit EvEmitter
+  		let proto = Unidragger.prototype = Object.create( EvEmitter.prototype );
+
+  		// ----- bind start ----- //
+
+  		// trigger handler methods for events
+  		proto.handleEvent = function( event ) {
+  		  let method = 'on' + event.type;
+  		  if ( this[ method ] ) {
+  		    this[ method ]( event );
+  		  }
+  		};
+
+  		let startEvent, activeEvents;
+  		if ( 'ontouchstart' in window ) {
+  		  // HACK prefer Touch Events as you can preventDefault on touchstart to
+  		  // disable scroll in iOS & mobile Chrome metafizzy/flickity#1177
+  		  startEvent = 'touchstart';
+  		  activeEvents = [ 'touchmove', 'touchend', 'touchcancel' ];
+  		} else if ( window.PointerEvent ) {
+  		  // Pointer Events
+  		  startEvent = 'pointerdown';
+  		  activeEvents = [ 'pointermove', 'pointerup', 'pointercancel' ];
+  		} else {
+  		  // mouse events
+  		  startEvent = 'mousedown';
+  		  activeEvents = [ 'mousemove', 'mouseup' ];
+  		}
+
+  		// prototype so it can be overwriteable by Flickity
+  		proto.touchActionValue = 'none';
+
+  		proto.bindHandles = function() {
+  		  this._bindHandles( 'addEventListener', this.touchActionValue );
+  		};
+
+  		proto.unbindHandles = function() {
+  		  this._bindHandles( 'removeEventListener', '' );
+  		};
+
+  		/**
+  		 * Add or remove start event
+  		 * @param {String} bindMethod - addEventListener or removeEventListener
+  		 * @param {String} touchAction - value for touch-action CSS property
+  		 */
+  		proto._bindHandles = function( bindMethod, touchAction ) {
+  		  this.handles.forEach( ( handle ) => {
+  		    handle[ bindMethod ]( startEvent, this );
+  		    handle[ bindMethod ]( 'click', this );
+  		    // touch-action: none to override browser touch gestures. metafizzy/flickity#540
+  		    if ( window.PointerEvent ) handle.style.touchAction = touchAction;
+  		  } );
+  		};
+
+  		proto.bindActivePointerEvents = function() {
+  		  activeEvents.forEach( ( eventName ) => {
+  		    window.addEventListener( eventName, this );
+  		  } );
+  		};
+
+  		proto.unbindActivePointerEvents = function() {
+  		  activeEvents.forEach( ( eventName ) => {
+  		    window.removeEventListener( eventName, this );
+  		  } );
+  		};
+
+  		// ----- event handler helpers ----- //
+
+  		// trigger method with matching pointer
+  		proto.withPointer = function( methodName, event ) {
+  		  if ( event.pointerId === this.pointerIdentifier ) {
+  		    this[ methodName ]( event, event );
+  		  }
+  		};
+
+  		// trigger method with matching touch
+  		proto.withTouch = function( methodName, event ) {
+  		  let touch;
+  		  for ( let changedTouch of event.changedTouches ) {
+  		    if ( changedTouch.identifier === this.pointerIdentifier ) {
+  		      touch = changedTouch;
+  		    }
+  		  }
+  		  if ( touch ) this[ methodName ]( event, touch );
+  		};
+
+  		// ----- start event ----- //
+
+  		proto.onmousedown = function( event ) {
+  		  this.pointerDown( event, event );
+  		};
+
+  		proto.ontouchstart = function( event ) {
+  		  this.pointerDown( event, event.changedTouches[0] );
+  		};
+
+  		proto.onpointerdown = function( event ) {
+  		  this.pointerDown( event, event );
+  		};
+
+  		// nodes that have text fields
+  		const cursorNodes = [ 'TEXTAREA', 'INPUT', 'SELECT', 'OPTION' ];
+  		// input types that do not have text fields
+  		const clickTypes = [ 'radio', 'checkbox', 'button', 'submit', 'image', 'file' ];
+
+  		/**
+  		 * any time you set `event, pointer` it refers to:
+  		 * @param {Event} event
+  		 * @param {Event | Touch} pointer
+  		 */
+  		proto.pointerDown = function( event, pointer ) {
+  		  // dismiss multi-touch taps, right clicks, and clicks on text fields
+  		  let isCursorNode = cursorNodes.includes( event.target.nodeName );
+  		  let isClickType = clickTypes.includes( event.target.type );
+  		  let isOkayElement = !isCursorNode || isClickType;
+  		  let isOkay = !this.isPointerDown && !event.button && isOkayElement;
+  		  if ( !isOkay ) return;
+
+  		  this.isPointerDown = true;
+  		  // save pointer identifier to match up touch events
+  		  this.pointerIdentifier = pointer.pointerId !== undefined ?
+  		    // pointerId for pointer events, touch.indentifier for touch events
+  		    pointer.pointerId : pointer.identifier;
+  		  // track position for move
+  		  this.pointerDownPointer = {
+  		    pageX: pointer.pageX,
+  		    pageY: pointer.pageY,
+  		  };
+
+  		  this.bindActivePointerEvents();
+  		  this.emitEvent( 'pointerDown', [ event, pointer ] );
+  		};
+
+  		// ----- move ----- //
+
+  		proto.onmousemove = function( event ) {
+  		  this.pointerMove( event, event );
+  		};
+
+  		proto.onpointermove = function( event ) {
+  		  this.withPointer( 'pointerMove', event );
+  		};
+
+  		proto.ontouchmove = function( event ) {
+  		  this.withTouch( 'pointerMove', event );
+  		};
+
+  		proto.pointerMove = function( event, pointer ) {
+  		  let moveVector = {
+  		    x: pointer.pageX - this.pointerDownPointer.pageX,
+  		    y: pointer.pageY - this.pointerDownPointer.pageY,
+  		  };
+  		  this.emitEvent( 'pointerMove', [ event, pointer, moveVector ] );
+  		  // start drag if pointer has moved far enough to start drag
+  		  let isDragStarting = !this.isDragging && this.hasDragStarted( moveVector );
+  		  if ( isDragStarting ) this.dragStart( event, pointer );
+  		  if ( this.isDragging ) this.dragMove( event, pointer, moveVector );
+  		};
+
+  		// condition if pointer has moved far enough to start drag
+  		proto.hasDragStarted = function( moveVector ) {
+  		  return Math.abs( moveVector.x ) > 3 || Math.abs( moveVector.y ) > 3;
+  		};
+
+  		// ----- drag ----- //
+
+  		proto.dragStart = function( event, pointer ) {
+  		  this.isDragging = true;
+  		  this.isPreventingClicks = true; // set flag to prevent clicks
+  		  this.emitEvent( 'dragStart', [ event, pointer ] );
+  		};
+
+  		proto.dragMove = function( event, pointer, moveVector ) {
+  		  this.emitEvent( 'dragMove', [ event, pointer, moveVector ] );
+  		};
+
+  		// ----- end ----- //
+
+  		proto.onmouseup = function( event ) {
+  		  this.pointerUp( event, event );
+  		};
+
+  		proto.onpointerup = function( event ) {
+  		  this.withPointer( 'pointerUp', event );
+  		};
+
+  		proto.ontouchend = function( event ) {
+  		  this.withTouch( 'pointerUp', event );
+  		};
+
+  		proto.pointerUp = function( event, pointer ) {
+  		  this.pointerDone();
+  		  this.emitEvent( 'pointerUp', [ event, pointer ] );
+
+  		  if ( this.isDragging ) {
+  		    this.dragEnd( event, pointer );
+  		  } else {
+  		    // pointer didn't move enough for drag to start
+  		    this.staticClick( event, pointer );
+  		  }
+  		};
+
+  		proto.dragEnd = function( event, pointer ) {
+  		  this.isDragging = false; // reset flag
+  		  // re-enable clicking async
+  		  setTimeout( () => delete this.isPreventingClicks );
+
+  		  this.emitEvent( 'dragEnd', [ event, pointer ] );
+  		};
+
+  		// triggered on pointer up & pointer cancel
+  		proto.pointerDone = function() {
+  		  this.isPointerDown = false;
+  		  delete this.pointerIdentifier;
+  		  this.unbindActivePointerEvents();
+  		  this.emitEvent('pointerDone');
+  		};
+
+  		// ----- cancel ----- //
+
+  		proto.onpointercancel = function( event ) {
+  		  this.withPointer( 'pointerCancel', event );
+  		};
+
+  		proto.ontouchcancel = function( event ) {
+  		  this.withTouch( 'pointerCancel', event );
+  		};
+
+  		proto.pointerCancel = function( event, pointer ) {
+  		  this.pointerDone();
+  		  this.emitEvent( 'pointerCancel', [ event, pointer ] );
+  		};
+
+  		// ----- click ----- //
+
+  		// handle all clicks and prevent clicks when dragging
+  		proto.onclick = function( event ) {
+  		  if ( this.isPreventingClicks ) event.preventDefault();
+  		};
+
+  		// triggered after pointer down & up with no/tiny movement
+  		proto.staticClick = function( event, pointer ) {
+  		  // ignore emulated mouse up clicks
+  		  let isMouseup = event.type === 'mouseup';
+  		  if ( isMouseup && this.isIgnoringMouseUp ) return;
+
+  		  this.emitEvent( 'staticClick', [ event, pointer ] );
+
+  		  // set flag for emulated clicks 300ms after touchend
+  		  if ( isMouseup ) {
+  		    this.isIgnoringMouseUp = true;
+  		    // reset flag after 400ms
+  		    setTimeout( () => {
+  		      delete this.isIgnoringMouseUp;
+  		    }, 400 );
+  		  }
+  		};
+
+  		// -----  ----- //
+
+  		return Unidragger;
+
+  		} ) ); 
+  	} (unidragger$1));
+  	return unidragger$1.exports;
+  }
+
+  /*!
+   * Draggabilly v3.0.0
+   * Make that shiz draggable
+   * https://draggabilly.desandro.com
+   * MIT license
+   */
+  var draggabilly = draggabilly$1.exports;
+
+  var hasRequiredDraggabilly;
+
+  function requireDraggabilly () {
+  	if (hasRequiredDraggabilly) return draggabilly$1.exports;
+  	hasRequiredDraggabilly = 1;
+  	(function (module) {
+  		( function( window, factory ) {
+  		  // universal module definition
+  		  if ( module.exports ) {
+  		    // CommonJS
+  		    module.exports = factory(
+  		        window,
+  		        requireGetSize(),
+  		        requireUnidragger(),
+  		    );
+  		  } else {
+  		    // browser global
+  		    window.Draggabilly = factory(
+  		        window,
+  		        window.getSize,
+  		        window.Unidragger,
+  		    );
+  		  }
+
+  		}( typeof window != 'undefined' ? window : draggabilly,
+  		    function factory( window, getSize, Unidragger ) {
+
+  		// -------------------------- helpers & variables -------------------------- //
+
+  		function noop() {}
+
+  		let jQuery = window.jQuery;
+
+  		// -------------------------- Draggabilly -------------------------- //
+
+  		function Draggabilly( element, options ) {
+  		  // querySelector if string
+  		  this.element = typeof element == 'string' ?
+  		    document.querySelector( element ) : element;
+
+  		  if ( jQuery ) {
+  		    this.$element = jQuery( this.element );
+  		  }
+
+  		  // options
+  		  this.options = {};
+  		  this.option( options );
+
+  		  this._create();
+  		}
+
+  		// inherit Unidragger methods
+  		let proto = Draggabilly.prototype = Object.create( Unidragger.prototype );
+
+  		/**
+  		 * set options
+  		 * @param {Object} opts
+  		 */
+  		proto.option = function( opts ) {
+  		  this.options = {
+  		    ...this.options,
+  		    ...opts,
+  		  };
+  		};
+
+  		// css position values that don't need to be set
+  		const positionValues = [ 'relative', 'absolute', 'fixed' ];
+
+  		proto._create = function() {
+  		  // properties
+  		  this.position = {};
+  		  this._getPosition();
+
+  		  this.startPoint = { x: 0, y: 0 };
+  		  this.dragPoint = { x: 0, y: 0 };
+
+  		  this.startPosition = { ...this.position };
+
+  		  // set relative positioning
+  		  let style = getComputedStyle( this.element );
+  		  if ( !positionValues.includes( style.position ) ) {
+  		    this.element.style.position = 'relative';
+  		  }
+
+  		  // events
+  		  this.on( 'pointerDown', this.handlePointerDown );
+  		  this.on( 'pointerUp', this.handlePointerUp );
+  		  this.on( 'dragStart', this.handleDragStart );
+  		  this.on( 'dragMove', this.handleDragMove );
+  		  this.on( 'dragEnd', this.handleDragEnd );
+
+  		  this.setHandles();
+  		  this.enable();
+  		};
+
+  		// set this.handles  and bind start events to 'em
+  		proto.setHandles = function() {
+  		  let { handle } = this.options;
+  		  if ( typeof handle == 'string' ) {
+  		    this.handles = this.element.querySelectorAll( handle );
+  		  } else if ( typeof handle == 'object' && handle.length ) {
+  		    this.handles = handle;
+  		  } else if ( handle instanceof HTMLElement ) {
+  		    this.handles = [ handle ];
+  		  } else {
+  		    this.handles = [ this.element ];
+  		  }
+  		};
+
+  		const cancelableEvents = [ 'dragStart', 'dragMove', 'dragEnd' ];
+
+  		// duck-punch emitEvent to dispatch jQuery events as well
+  		let emitEvent = proto.emitEvent;
+  		proto.emitEvent = function( eventName, args ) {
+  		  // do not emit cancelable events if dragging is disabled
+  		  let isCanceled = !this.isEnabled && cancelableEvents.includes( eventName );
+  		  if ( isCanceled ) return;
+
+  		  emitEvent.call( this, eventName, args );
+
+  		  // trigger jQuery event
+  		  let jquery = window.jQuery;
+  		  if ( !jquery || !this.$element ) return;
+  		  // create jQuery event
+  		  let event;
+  		  let jqArgs = args;
+  		  let isFirstArgEvent = args && args[0] instanceof Event;
+  		  if ( isFirstArgEvent ) [ event, ...jqArgs ] = args;
+  		  /* eslint-disable-next-line new-cap */
+  		  let $event = jquery.Event( event );
+  		  $event.type = eventName;
+  		  this.$element.trigger( $event, jqArgs );
+  		};
+
+  		// -------------------------- position -------------------------- //
+
+  		// get x/y position from style
+  		proto._getPosition = function() {
+  		  let style = getComputedStyle( this.element );
+  		  let x = this._getPositionCoord( style.left, 'width' );
+  		  let y = this._getPositionCoord( style.top, 'height' );
+  		  // clean up 'auto' or other non-integer values
+  		  this.position.x = isNaN( x ) ? 0 : x;
+  		  this.position.y = isNaN( y ) ? 0 : y;
+
+  		  this._addTransformPosition( style );
+  		};
+
+  		proto._getPositionCoord = function( styleSide, measure ) {
+  		  if ( styleSide.includes('%') ) {
+  		    // convert percent into pixel for Safari, #75
+  		    let parentSize = getSize( this.element.parentNode );
+  		    // prevent not-in-DOM element throwing bug, #131
+  		    return !parentSize ? 0 :
+  		      ( parseFloat( styleSide ) / 100 ) * parentSize[ measure ];
+  		  }
+  		  return parseInt( styleSide, 10 );
+  		};
+
+  		// add transform: translate( x, y ) to position
+  		proto._addTransformPosition = function( style ) {
+  		  let transform = style.transform;
+  		  // bail out if value is 'none'
+  		  if ( !transform.startsWith('matrix') ) return;
+
+  		  // split matrix(1, 0, 0, 1, x, y)
+  		  let matrixValues = transform.split(',');
+  		  // translate X value is in 12th or 4th position
+  		  let xIndex = transform.startsWith('matrix3d') ? 12 : 4;
+  		  let translateX = parseInt( matrixValues[ xIndex ], 10 );
+  		  // translate Y value is in 13th or 5th position
+  		  let translateY = parseInt( matrixValues[ xIndex + 1 ], 10 );
+  		  this.position.x += translateX;
+  		  this.position.y += translateY;
+  		};
+
+  		// -------------------------- events -------------------------- //
+
+  		proto.handlePointerDown = function( event, pointer ) {
+  		  if ( !this.isEnabled ) return;
+  		  // track start event position
+  		  // Safari 9 overrides pageX and pageY. These values needs to be copied. flickity#842
+  		  this.pointerDownPointer = {
+  		    pageX: pointer.pageX,
+  		    pageY: pointer.pageY,
+  		  };
+
+  		  event.preventDefault();
+  		  document.activeElement.blur();
+  		  // bind move and end events
+  		  this.bindActivePointerEvents( event );
+  		  this.element.classList.add('is-pointer-down');
+  		};
+
+  		proto.handleDragStart = function() {
+  		  if ( !this.isEnabled ) return;
+
+  		  this._getPosition();
+  		  this.measureContainment();
+  		  // position _when_ drag began
+  		  this.startPosition.x = this.position.x;
+  		  this.startPosition.y = this.position.y;
+  		  // reset left/top style
+  		  this.setLeftTop();
+
+  		  this.dragPoint.x = 0;
+  		  this.dragPoint.y = 0;
+
+  		  this.element.classList.add('is-dragging');
+  		  // start animation
+  		  this.animate();
+  		};
+
+  		proto.measureContainment = function() {
+  		  let container = this.getContainer();
+  		  if ( !container ) return;
+
+  		  let elemSize = getSize( this.element );
+  		  let containerSize = getSize( container );
+  		  let {
+  		    borderLeftWidth,
+  		    borderRightWidth,
+  		    borderTopWidth,
+  		    borderBottomWidth,
+  		  } = containerSize;
+  		  let elemRect = this.element.getBoundingClientRect();
+  		  let containerRect = container.getBoundingClientRect();
+
+  		  let borderSizeX = borderLeftWidth + borderRightWidth;
+  		  let borderSizeY = borderTopWidth + borderBottomWidth;
+
+  		  let position = this.relativeStartPosition = {
+  		    x: elemRect.left - ( containerRect.left + borderLeftWidth ),
+  		    y: elemRect.top - ( containerRect.top + borderTopWidth ),
+  		  };
+
+  		  this.containSize = {
+  		    width: ( containerSize.width - borderSizeX ) - position.x - elemSize.width,
+  		    height: ( containerSize.height - borderSizeY ) - position.y - elemSize.height,
+  		  };
+  		};
+
+  		proto.getContainer = function() {
+  		  let containment = this.options.containment;
+  		  if ( !containment ) return;
+
+  		  let isElement = containment instanceof HTMLElement;
+  		  // use as element
+  		  if ( isElement ) return containment;
+
+  		  // querySelector if string
+  		  if ( typeof containment == 'string' ) {
+  		    return document.querySelector( containment );
+  		  }
+  		  // fallback to parent element
+  		  return this.element.parentNode;
+  		};
+
+  		// ----- move event ----- //
+
+  		/**
+  		 * drag move
+  		 * @param {Event} event
+  		 * @param {Event | Touch} pointer
+  		 * @param {Object} moveVector - x and y coordinates
+  		 */
+  		proto.handleDragMove = function( event, pointer, moveVector ) {
+  		  if ( !this.isEnabled ) return;
+
+  		  let dragX = moveVector.x;
+  		  let dragY = moveVector.y;
+
+  		  let grid = this.options.grid;
+  		  let gridX = grid && grid[0];
+  		  let gridY = grid && grid[1];
+
+  		  dragX = applyGrid( dragX, gridX );
+  		  dragY = applyGrid( dragY, gridY );
+
+  		  dragX = this.containDrag( 'x', dragX, gridX );
+  		  dragY = this.containDrag( 'y', dragY, gridY );
+
+  		  // constrain to axis
+  		  dragX = this.options.axis == 'y' ? 0 : dragX;
+  		  dragY = this.options.axis == 'x' ? 0 : dragY;
+
+  		  this.position.x = this.startPosition.x + dragX;
+  		  this.position.y = this.startPosition.y + dragY;
+  		  // set dragPoint properties
+  		  this.dragPoint.x = dragX;
+  		  this.dragPoint.y = dragY;
+  		};
+
+  		function applyGrid( value, grid, method ) {
+  		  if ( !grid ) return value;
+
+  		  method = method || 'round';
+  		  return Math[ method ]( value/grid ) * grid;
+  		}
+
+  		proto.containDrag = function( axis, drag, grid ) {
+  		  if ( !this.options.containment ) return drag;
+
+  		  let measure = axis == 'x' ? 'width' : 'height';
+
+  		  let rel = this.relativeStartPosition[ axis ];
+  		  let min = applyGrid( -rel, grid, 'ceil' );
+  		  let max = this.containSize[ measure ];
+  		  max = applyGrid( max, grid, 'floor' );
+  		  return Math.max( min, Math.min( max, drag ) );
+  		};
+
+  		// ----- end event ----- //
+
+  		proto.handlePointerUp = function() {
+  		  this.element.classList.remove('is-pointer-down');
+  		};
+
+  		proto.handleDragEnd = function() {
+  		  if ( !this.isEnabled ) return;
+
+  		  // use top left position when complete
+  		  this.element.style.transform = '';
+  		  this.setLeftTop();
+  		  this.element.classList.remove('is-dragging');
+  		};
+
+  		// -------------------------- animation -------------------------- //
+
+  		proto.animate = function() {
+  		  // only render and animate if dragging
+  		  if ( !this.isDragging ) return;
+
+  		  this.positionDrag();
+  		  requestAnimationFrame( () => this.animate() );
+  		};
+
+  		// left/top positioning
+  		proto.setLeftTop = function() {
+  		  let { x, y } = this.position;
+  		  this.element.style.left = `${x}px`;
+  		  this.element.style.top = `${y}px`;
+  		};
+
+  		proto.positionDrag = function() {
+  		  let { x, y } = this.dragPoint;
+  		  this.element.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+  		};
+
+  		// ----- methods ----- //
+
+  		/**
+  		 * @param {Number} x
+  		 * @param {Number} y
+  		 */
+  		proto.setPosition = function( x, y ) {
+  		  this.position.x = x;
+  		  this.position.y = y;
+  		  this.setLeftTop();
+  		};
+
+  		proto.enable = function() {
+  		  if ( this.isEnabled ) return;
+  		  this.isEnabled = true;
+  		  this.bindHandles();
+  		};
+
+  		proto.disable = function() {
+  		  if ( !this.isEnabled ) return;
+  		  this.isEnabled = false;
+  		  if ( this.isDragging ) this.dragEnd();
+  		  this.unbindHandles();
+  		};
+
+  		const resetCssProperties = [ 'transform', 'left', 'top', 'position' ];
+
+  		proto.destroy = function() {
+  		  this.disable();
+  		  // reset styles
+  		  resetCssProperties.forEach( ( prop ) => {
+  		    this.element.style[ prop ] = '';
+  		  } );
+  		  // unbind handles
+  		  this.unbindHandles();
+  		  // remove jQuery data
+  		  if ( this.$element ) this.$element.removeData('draggabilly');
+  		};
+
+  		// ----- jQuery bridget ----- //
+
+  		// required for jQuery bridget
+  		proto._init = noop;
+
+  		if ( jQuery && jQuery.bridget ) {
+  		  jQuery.bridget( 'draggabilly', Draggabilly );
+  		}
+
+  		// -----  ----- //
+
+  		return Draggabilly;
+
+  		} ) ); 
+  	} (draggabilly$1));
+  	return draggabilly$1.exports;
+  }
+
+  var draggabillyExports = requireDraggabilly();
+  var Draggabilly = /*@__PURE__*/getDefaultExportFromCjs(draggabillyExports);
+
   class Container {
     //成员变量
     config;
@@ -1694,9 +3826,7 @@
     //创建容器
     initContainer() {
       // 若 id 对应的弹层已经存在，则不重新创建 layui-layer
-      if (this.config.id && $$1(`.${Constants.CLASSES.layuiLayer}`).find(`#${this.config.id}`)[0]) {
-        console.log("没有创建");
-      }
+      if (this.config.id && $$1(`.${Constants.CLASSES.layuiLayer}`).find(`#${this.config.id}`)[0]) ;
 
       // 是否移除活动元素的焦点
       if (this.config.removeFocus && document.activeElement) {
@@ -1705,33 +3835,10 @@
       this.initAreaOption();
       this.adjustLayerSettings();
 
-      // 使用类来生成字符串
-      const htmlGenerator = new HTMLGenerator(this.config, this.index);
-      const html = htmlGenerator.getContainerHTML();
-
-      // 加入遮罩层
-      $$1("body").append(htmlGenerator.getShadeHTML());
-      console.log(this.config.content);
-
-      // 判断content选项是对象
-      if (isObject(this.config.content)) {
-        if (this.config.type == MAP.TYPE.IFRAME || this.config.type == MAP.TYPE.TIPS) {
-          $$1("body").append(html);
-        } else {
-          if (!this.config.content.parents(`.${Constants.CLASSES.layuiLayer}`)[0]) {
-            this.config.content.data("display", this.config.content.css("display")).show().addClass(Constants.CLASSES.layerWrap).wrap(html);
-            $$1(`#${Constants.CLASSES.layuiLayer}${this.index}`).find(`.${Constants.CLASSES.layerContent}`).before(htmlGenerator.getTtitleHTML());
-          }
-        }
-      } else {
-        $$1("body").append(html);
-      }
+      // 追加html到页面上
+      this.appendHTML();
       this.$moveEl = $$1(Util.sprintf(Constants.HTML.move, Constants.CLASSES.move, Constants.CLASSES.move));
       $$1(`#${Constants.CLASSES.move}`)[0] || $$1("body").append(this.$moveEl);
-
-      // 保存为成员变量,方便后续使用
-      this.layero = Util.getLayeroByIndex(this.index);
-      this.shadeo = Util.getShadeoByIndex(this.index);
       this.layeroOuterWidth = this.layero.outerWidth();
       this.layeroouterHeight = this.layero.outerHeight();
       this.config.scrollbar || Util.setScrollbar(this.index);
@@ -1749,39 +3856,31 @@
         this.offset();
 
         // 获取拖拽层的元素堆叠索引
-        const movezIndex = parseInt(Util.getStyle(document.getElementById(Constants.CLASSES.move), "z-index"));
-        if (!movezIndex) {
-          this.layero.css("visibility", "hidden").offset().css("visibility", "visible");
-        }
+        // const movezIndex = parseInt(
+        //   Util.getStyle(
+        //     document.getElementById(Constants.CLASSES.move),
+        //     "z-index"
+        //   )
+        // );
+
+        // if (!movezIndex) {
+        //   console.log(this.layero);
+
+        //   this.layero
+        //     .css("visibility", "hidden")
+        //     .offset()
+        //     .css("visibility", "visible");
+        // }
       }
 
       //若是固定定位，则跟随 resize 事件来自适应坐标
-      if (this.config.fixed) {
-        if (!shared.events.resize[this.index]) {
-          //如果当前实例对应的resize事件没有设置
+      if (this.config.fixed) ;
 
-          shared.events.resize[this.index] = () => {
-            // 调用 offset 方法
-            this.offset();
-
-            // 判断 area 是否为百分比格式，如果是则调用 auto 方法
-            const isPercentage = this.config.area.some(area => /^\d+%$/.test(area));
-            if (isPercentage) this.auto(this.index);
-
-            // 如果类型为 4，调用 tips 方法
-            if (this.config.type === MAP.TYPE.TIPS) this.tips();
-          };
-
-          // 此处 resize 事件不会一直叠加，当关闭弹层时会移除该事件
-          $$1(window).on("resize", shared.events.resize[this.index]);
-        }
-      }
-      this.config.time <= 0 || setTimeout(() => {
-        this.layer.close(this.index);
-      }, this.config.time);
+      // 是否自动关闭弹出层
+      this.autoClose();
 
       // 拖拽处理
-      this.move();
+      // this.move();
 
       // 事件绑定,这里用类的方式来实现，比较友好
       new EventBinder(this);
@@ -1791,6 +3890,37 @@
 
       // 记录配置信息
       this.layero.data("config", this.config);
+    }
+    appendHTML() {
+      // 使用类来生成字符串
+      const htmlGenerator = new HTMLGenerator(this.config, this.index);
+      const html = htmlGenerator.getContainerHTML();
+
+      // 加入遮罩层
+      $$1("body").append(htmlGenerator.getShadeHTML());
+      // 加入主体内容
+      $$1("body").append(html);
+
+      // 保存为成员变量,方便后续使用
+      this.layero = Util.getLayeroByIndex(this.index);
+      this.shadeo = Util.getShadeoByIndex(this.index);
+
+      // 如果是一个jquery对象,那么则是捕获层
+      if (isInstanceOf(this.config.content, $$1) && !this.config.content.parents(`.${Constants.CLASSES.layuiLayer}`)[0]) {
+        console.log("捕获");
+        console.log(this.layero.find(`.${Constants.CLASSES.layerContent}`));
+        console.log(this.config.content);
+        this.layero.find(`.${Constants.CLASSES.layerContent}`).wrapInner(this.config.content.show());
+      }
+    }
+
+    // 自动关闭弹出层
+    autoClose() {
+      if (this.config.time > 0) {
+        setTimeout(() => {
+          this.layer.close(this.index);
+        }, this.config.time);
+      }
     }
 
     // 设置动画
@@ -1820,6 +3950,28 @@
       layero.addClass(animationFullClass).one("animationend", () => {
         layero.removeClass(animationFullClass);
       });
+    }
+
+    // 自动更新位置处理
+    autoUpdatePosi() {
+      if (!shared.events.resize[this.index]) {
+        //如果当前实例对应的resize事件没有设置
+
+        shared.events.resize[this.index] = () => {
+          // 调用 offset 方法
+          this.offset();
+
+          // 判断 area 是否为百分比格式，如果是则调用 auto 方法
+          const isPercentage = this.config.area.some(area => /^\d+%$/.test(area));
+          if (isPercentage) this.auto(this.index);
+
+          // 如果类型为 4，调用 tips 方法
+          if (this.config.type === MAP.TYPE.TIPS) this.tips();
+        };
+
+        // 此处 resize 事件不会一直叠加，当关闭弹层时会移除该事件
+        $$1(window).on("resize", shared.events.resize[this.index]);
+      }
     }
 
     // 设置弹出框的高度和宽度(弹出框的位置)
@@ -1890,6 +4042,7 @@
           this.config.tips = isArray(this.config.tips) ? this.config.tips : [this.config.tips, true];
           //是否允许同时存在多个 tips 层，即不销毁上一个 tips
           this.config.tipsMore || this.layer.closeAll(MAP.TYPE_NAME[MAP.TYPE.TIPS]);
+          console.log("tips");
         }
       };
 
@@ -1908,6 +4061,24 @@
     // 拖拽层
     move() {
       let that = this;
+      const element = this.layero[0];
+      const draggie = new Draggabilly(element, {
+        handle: element.querySelector(".layui-layer-title"),
+        containment: this.$moveEl[0]
+      });
+      draggie.on("pointerDown", function (event, pointer) {
+        console.log("pointerDown");
+        // $(".move-container").show();
+
+        that.$moveEl.show();
+      });
+      draggie.on("dragEnd", function (event, pointer) {
+        console.log("拖动结束");
+        that.$moveEl.hide();
+      });
+    }
+    move2() {
+      let that = this;
       let DATA_NAME = ["LAY_MOVE_DICT", "LAY_RESIZE_DICT"];
       let moveElem = this.layero.find(this.config.move);
       let resizeElem = this.layero.find(`.${Constants.CLASSES.layerResize}`);
@@ -1922,7 +4093,6 @@
         } // 不是左键不处理
         let othis = $$1(this);
         let dict = {};
-        console.log("mousedown");
         if (that.config.move) {
           dict.layero = that.layero;
           dict.config = that.config;
@@ -2068,6 +4238,48 @@
     //==============公开api===================
     // 计算坐标
     offset() {
+      const floatingEl = this.layero[0];
+      const virtualEl = {
+        getBoundingClientRect() {
+          return {
+            top: 0,
+            // 窗口顶部，视口的 top 是 0
+            left: 0,
+            // 窗口左边，视口的 left 是 0
+            bottom: window.innerHeight,
+            // 窗口的底部等于窗口高度
+            right: window.innerWidth,
+            // 窗口的右边等于窗口宽度
+            width: window.innerWidth,
+            // 窗口的宽度
+            height: window.innerHeight,
+            // 窗口的高度
+            x: 0,
+            // x 坐标等同于 left
+            y: 0 // y 坐标等同于 top
+          };
+        }
+      };
+      Util.computePosition(virtualEl, floatingEl, {
+        //let left-start left-end top-start right-start
+        placement: "left",
+        strategy: "fixed",
+        // 默认是'absolute'
+        middleware: [shift({
+          // 重要:让参考元素可以被重叠
+          crossAxis: true
+        })]
+      }).then(({
+        x,
+        y
+      }) => {
+        Object.assign(floatingEl.style, {
+          left: `${x}px`,
+          top: `${y}px`
+        });
+      });
+    }
+    offset2() {
       let that = this,
         config = that.config,
         layero = that.layero;

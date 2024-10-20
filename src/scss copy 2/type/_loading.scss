@@ -1,0 +1,41 @@
+.layui-layer-loading {
+  border-radius: 100%;
+  background: none;
+  box-shadow: none;
+  border: none;
+  .layui-layer-content {
+    width: 76px;
+    height: 38px;
+    line-height: 38px;
+    text-align: center;
+    .layui-layer-loading-icon {
+      font-size: 38px;
+      color: #959595;
+    }
+  }
+  .layui-layer-loading2 {
+    text-align: center;
+    .layui-layer-loading-2 {
+      position: relative;
+      height: 38px;
+      &::before,
+      &::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 38px;
+        height: 38px;
+        margin: -19px 0 0 -19px;
+        border-radius: 50%;
+        border: 3px solid #d2d2d2;
+        box-sizing: border-box;
+      }
+
+      &::after {
+        border-color: transparent;
+        border-left-color: #1e9fff;
+      }
+    }
+  }
+}

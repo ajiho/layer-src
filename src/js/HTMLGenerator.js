@@ -1,11 +1,12 @@
-import { isString, isObject } from "is-what";
+import $ from "jquery";
+import { isString, isObject,isInstanceOf } from "is-what";
 import Constants, { MAP } from "./constants/index";
 import Util from "./util";
 
 class HTMLGenerator {
   // 索引
   constructor(config, index) {
-    console.log("HTMLGenerator");
+
     this.config = config;
     this.index = index;
     //计算索引值
@@ -160,7 +161,18 @@ class HTMLGenerator {
     const isPageType = this.config.type === MAP.TYPE.PAGE;
 
     // 如果是 PAGE 类型并且 conType 存在，返回空字符串
-    if (isPageType && isObject(this.config.content)) {
+
+    console.log(this.config.content);
+    
+
+    
+    
+    if (isPageType && isInstanceOf(this.config.content,$)) {
+
+
+      console.log('页面类型');
+      
+
       return "";
     }
 
@@ -232,7 +244,6 @@ class HTMLGenerator {
       this.config.btn = [this.config.btn];
     }
 
-    console.log(this.config.btn);
 
     // 遍历按钮数组，生成按钮的 HTML 字符串
     this.config.btn.forEach((btnLabel, i) => {

@@ -4,51 +4,107 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
+    <link rel="stylesheet" href="../../dist//css/layer.css" />
+    <style>
+      body {
+        background-color: rgba(248, 249, 250, 1);
+      }
+      :root {
+        --bs-box-shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+      }
+      .layui-layer {
+        width: 500px;
+        display: flex;
+        flex-direction: column;
+        box-shadow: var(--bs-box-shadow-sm) !important;
+      }
+
+      .layer-header {
+        display: flex;
+        align-items: center; /* 垂直居中对齐 */
+        justify-content: space-between; /* 左右分隔 */
+        padding: 10px; /* 内边距 */
+        background-color: #f1f1f1; /* 背景颜色 */
+        border-bottom: 1px solid #f0f0f0;
+      }
+
+      .layer-title {
+        flex: 1; /* 让标题区域占用剩余空间 */
+        white-space: nowrap; /* 不换行 */
+        overflow: hidden; /* 隐藏超出部分 */
+        text-overflow: ellipsis; /* 超出部分显示省略号 */
+        margin-right: 10px; /* 右边距，确保与操作区域有间距 */
+      }
+
+      .layer-action {
+        display: flex; /* 水平排列按钮 */
+        gap: 5px; /* 按钮之间的间距 */
+      }
+
+      .layer-action button {
+        background: none; /* 背景透明 */
+        border: none; /* 去掉边框 */
+        cursor: pointer; /* 鼠标指针样式 */
+        display: flex;
+        align-items: center;
+      }
+
+      .layer-action button svg {
+        width: 14px;
+        height: 14px;
+        fill: #212529;
+      }
+
+      .layer-action button:hover svg {
+        fill: #c2c2c2;
+      }
+    </style>
   </head>
   <body>
-    
-    <!-- 遮罩层 -->
-    <div
-      class="layui-layer-shade"
-      id="layui-layer-shade1"
-      times="1"
-      style="z-index: 19891014; background-color: rgb(0, 0, 0); opacity: 0.6"
-    ></div>
     <!-- 主体 -->
-    <div
-      class="layui-layer layui-layer-page"
-      id="layui-layer1"
-      type="page"
-      times="1"
-      showtime="0"
-      contype="string"
-      style="
-        z-index: 19891015;
-        width: 500px;
-        height: 300px;
-        position: fixed;
-        top: 40px;
-        left: 509.5px;
-      "
-    >
-      <!-- 主题标题 -->
-      <div class="layui-layer-title" style="cursor: move">信息</div>
+    <div class="layui-layer layui-layer-page">
+      <!-- 头部区域 -->
+      <div class="layer-header">
+        <!-- 左侧标题区域 -->
+        <div class="layer-title">
+          标题标题标题标题标标题标标题标标题标标题标标题标标题标
+        </div>
+
+        <!-- 右边的操作区域 -->
+        <div class="layer-action">
+          <!-- 最小化 -->
+          <button>
+            <svg viewBox="0 0 16 16">
+              <path
+                d="M4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8"
+              />
+            </svg>
+          </button>
+
+          <!-- 最大化 -->
+          <button>
+            <svg viewBox="0 0 16 16">
+              <path
+                d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z"
+              />
+            </svg>
+          </button>
+
+          <!-- 关闭按钮 -->
+          <button>
+            <svg viewBox="0 0 16 16">
+              <path
+                d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+
       <!-- 主体内容区 -->
       <div class="layui-layer-content" style="height: 249.2px">
         <div style="padding: 32px">一个普通的页面层，传入了自定义的 HTML</div>
       </div>
-      <!-- 操作按钮区 -->
-      <div class="layui-layer-setwin">
-        <span class="layui-layer-min"></span
-        ><span class="layui-layer-max"></span
-        ><span
-          class="layui-icon layui-icon-close layui-layer-close layui-layer-close1"
-        ></span>
-      </div>
-      <!-- 恢复 -->
-      <span class="layui-layer-resize"></span>
     </div>
-    <!-- 拖拽层 -->
-    <div class="layui-layer-move" id="layui-layer-move"></div>
   </body>
 </html>
